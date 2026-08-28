@@ -15,9 +15,15 @@ export class ApiService {
   private get baseUrl(): string {
     const customUrl = (window as any).__AMRIT_API_URL__ || localStorage.getItem('amrit_api_url');
     if (customUrl) return customUrl;
-    // Check if running on production domain
-    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      return `${window.location.origin}/api`;
+
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      if (host.includes('onrender.com') || host.includes('vercel.app') || host.includes('netlify.app')) {
+        return 'https://milk-fd6f.onrender.com/api';
+      }
+      if (host !== 'localhost' && host !== '127.0.0.1') {
+        return `${window.location.origin}/api`;
+      }
     }
     return 'http://localhost:3000/api';
   }
