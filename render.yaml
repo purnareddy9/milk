@@ -1,0 +1,62 @@
+# Render.com Blueprint Specification for Amrit Pure Dairy Platform
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  # -------------------------------------------------------------
+  # 1. NESTJS BACKEND API WEB SERVICE
+  # -------------------------------------------------------------
+  - type: web
+    name: amrit-dairy-backend
+    runtime: node
+    plan: free
+    region: singapore # or frankfurt / oregon / ohio
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: node dist/src/main
+    healthCheckPath: /api/categories
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # Set in Render Dashboard with your Supabase Transaction Pooler URL
+      - key: DIRECT_URL
+        sync: false # Set in Render Dashboard with your Supabase Session URL
+      - key: JWT_SECRET
+        generateValue: true # Render automatically generates a secure random 256-bit string
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
+      - key: RAZORPAY_KEY_ID
+        value: rzp_test_AmritDairy2026
+      - key: RAZORPAY_KEY_SECRET
+        value: mock_razorpay_secret_key
+      - key: RAZORPAY_WEBHOOK_SECRET
+        value: mock_razorpay_webhook_secret
+
+  # -------------------------------------------------------------
+  # 2. ANGULAR FRONTEND STATIC SITE
+  # -------------------------------------------------------------
+  - type: web
+    name: amrit-dairy-frontend
+    runtime: static
+    plan: free
+    region: singapore
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist/milk-delivery-frontend/browser
+    autoDeploy: true
+    routes:
+      # Angular SPA Rewrite Rule for HTML5 Client-Side Routing
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff

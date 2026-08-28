@@ -12,7 +12,15 @@ export interface ApiResponse<T> {
   providedIn: 'root',
 })
 export class ApiService {
-  private readonly baseUrl = 'http://localhost:3000/api';
+  private get baseUrl(): string {
+    const customUrl = (window as any).__AMRIT_API_URL__ || localStorage.getItem('amrit_api_url');
+    if (customUrl) return customUrl;
+    // Check if running on production domain
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return `${window.location.origin}/api`;
+    }
+    return 'http://localhost:3000/api';
+  }
 
   constructor(private readonly http: HttpClient) {}
 

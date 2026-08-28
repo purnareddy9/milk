@@ -68,7 +68,10 @@ cd frontend
 npm install
 npm start
 ```
-Frontend App will be running on `http://localhost:4200`
+### Option 3: Deploy to Render.com ($0 Free Tier)
+Deploy the full platform in 1 click using the included [`render.yaml`](file:///c:/Users/Sri/Documents/Antigravity%20Projects/milk/render.yaml) Blueprint or manual steps:
+- **Guide**: [`RENDER_DEPLOYMENT.md`](file:///c:/Users/Sri/Documents/Antigravity%20Projects/milk/RENDER_DEPLOYMENT.md)
+- **Supabase Guide**: [`DEPLOYMENT.md`](file:///c:/Users/Sri/Documents/Antigravity%20Projects/milk/DEPLOYMENT.md)
 
 ---
 
