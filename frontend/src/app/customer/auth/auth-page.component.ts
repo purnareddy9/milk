@@ -130,15 +130,15 @@ import { ToastService } from '../../core/services/toast.service';
                   maxlength="4"
                   class="form-control text-center otp-input"
                 />
-                <p class="otp-hint">Demo code is <strong>1234</strong></p>
+                <p class="otp-hint" *ngIf="isDevMode()">Demo code is <strong>1234</strong></p>
                 <button type="submit" class="btn btn-primary btn-block mt-2" [disabled]="enteredOtp.length < 4">
                   Verify & Continue
                 </button>
               </div>
             </form>
 
-            <!-- Quick Demo Switcher -->
-            <div class="persona-panel">
+            <!-- Quick Demo Switcher (Development Only) -->
+            <div class="persona-panel" *ngIf="isDevMode()">
               <div class="panel-title"><span>OR 1-CLICK INSTANT DEMO LOGIN</span></div>
               <div class="persona-grid">
                 <button type="button" class="persona-card" (click)="quickLogin('CUSTOMER_RAHUL')">
@@ -633,5 +633,10 @@ export class AuthPageComponent implements OnInit {
 
   forgotPassword() {
     this.toast.info('Password reset instructions sent to your email.');
+  }
+
+  isDevMode(): boolean {
+    if (typeof window === 'undefined') return false;
+    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   }
 }

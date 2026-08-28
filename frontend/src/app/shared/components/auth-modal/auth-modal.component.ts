@@ -151,7 +151,7 @@ import { ToastService } from '../../../core/services/toast.service';
                   />
                 </div>
                 <div class="resend-row">
-                  <span class="helper-text">Demo OTP is: <strong>1234</strong></span>
+                  <span class="helper-text" *ngIf="isDevMode()">Demo OTP is: <strong>1234</strong></span>
                   <button type="button" class="resend-btn" (click)="sendOtp()">Resend OTP</button>
                 </div>
                 <button type="submit" class="btn btn-primary btn-block mt-3" [disabled]="enteredOtp.length < 4 || isSubmitting()">
@@ -160,8 +160,8 @@ import { ToastService } from '../../../core/services/toast.service';
               </div>
             </form>
 
-            <!-- 1-Click Quick Persona Logins -->
-            <div class="demo-personas-section">
+            <!-- 1-Click Quick Persona Logins (Development Mode Only) -->
+            <div class="demo-personas-section" *ngIf="isDevMode()">
               <div class="divider">
                 <span>OR 1-CLICK DEMO PERSONA</span>
               </div>
@@ -874,5 +874,10 @@ export class AuthModalComponent {
 
   showForgotDialog() {
     this.toast.info('Password reset instructions sent to your email with a secure 1-click link.');
+  }
+
+  isDevMode(): boolean {
+    if (typeof window === 'undefined') return false;
+    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   }
 }
