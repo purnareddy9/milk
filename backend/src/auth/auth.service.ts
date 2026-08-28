@@ -91,6 +91,49 @@ export class AuthService {
     };
   }
 
+  async otpLogin(phone: string) {
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const formattedPhone = phone.startsWith('+91') ? phone : `+91 ${cleanPhone}`;
+
+    let user = await this.prisma.user.findFirst({
+      where: {
+        OR: [{ phone }, { phone: formattedPhone }, { phone: cleanPhone }],
+      },
+      include: {
+        customerProfile: true,
+        deliveryPersonProfile: true,
+        addresses: true,
+      },
+    });
+
+    if (!user) {
+      const defaultEmail = `user_${cleanPhone.slice(-6)}@amritpuredairy.com`;
+      user = await this.prisma.user.create({
+        data: {
+          name: `Customer ${cleanPhone.slice(-4)}`,
+          email: defaultEmail,
+          phone: formattedPhone,
+          passwordHash: await bcrypt.hash('otp_authed_user', 10),
+          role: Role.CUSTOMER,
+          walletBalance: 100.0,
+          customerProfile: { create: { loyaltyPoints: 50, totalSpent: 0, orderCount: 0 } },
+        },
+        include: {
+          customerProfile: true,
+          deliveryPersonProfile: true,
+          addresses: true,
+        },
+      });
+    }
+
+    const tokens = this.generateTokens(user.id, user.email, user.role);
+
+    return {
+      user: this.sanitizeUser(user),
+      ...tokens,
+    };
+  }
+
   async personaLogin(dto: PersonaLoginDto) {
     let email = '';
     switch (dto.persona) {

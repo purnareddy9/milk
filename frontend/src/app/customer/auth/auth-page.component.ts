@@ -583,7 +583,17 @@ export class AuthPageComponent implements OnInit {
       this.toast.error('Invalid OTP. Use 1234');
       return;
     }
-    this.quickLogin('CUSTOMER_RAHUL');
+    this.isSubmitting.set(true);
+    this.auth.otpLogin(this.phone).subscribe({
+      next: (res) => {
+        this.isSubmitting.set(false);
+        this.redirectAfterLogin(res.user);
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        this.toast.error(err?.error?.message || 'OTP login failed. Please try again.');
+      },
+    });
   }
 
   handleSignup() {

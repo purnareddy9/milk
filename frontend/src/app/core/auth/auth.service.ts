@@ -69,6 +69,15 @@ export class AuthService {
     );
   }
 
+  otpLogin(phone: string): Observable<any> {
+    return this.api.post<{ user: User; accessToken: string }>('auth/otp-login', { phone }).pipe(
+      tap((res) => {
+        this.setSession(res.user, res.accessToken);
+        this.toast.success(`Welcome back, ${res.user.name}!`);
+      }),
+    );
+  }
+
   register(data: any): Observable<any> {
     return this.api.post<{ user: User; accessToken: string }>('auth/register', data).pipe(
       tap((res) => {

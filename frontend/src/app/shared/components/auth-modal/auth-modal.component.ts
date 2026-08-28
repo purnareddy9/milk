@@ -814,7 +814,17 @@ export class AuthModalComponent {
     }
 
     this.isSubmitting.set(true);
-    this.selectPersona('CUSTOMER_RAHUL');
+    this.auth.otpLogin(this.otpPhone).subscribe({
+      next: (res) => {
+        this.isSubmitting.set(false);
+        this.close();
+        this.loginSuccess.emit(res);
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        this.toast.error(err?.error?.message || 'OTP login failed. Please try again.');
+      },
+    });
   }
 
   handleSignup() {

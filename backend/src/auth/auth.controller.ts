@@ -20,6 +20,11 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  @Post('otp-login')
+  async otpLogin(@Body('phone') phone: string) {
+    return this.authService.otpLogin(phone);
+  }
+
   @Post('persona')
   async personaLogin(@Body() dto: PersonaLoginDto) {
     return this.authService.personaLogin(dto);
