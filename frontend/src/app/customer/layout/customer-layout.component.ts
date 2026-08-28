@@ -88,25 +88,25 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
               <span class="action-text">Orders</span>
             </a>
 
-            <!-- Wallet -->
-            <a routerLink="/payments" class="wallet-pill" title="Milk Wallet">
+            <!-- Wallet (Only when logged in) -->
+            <a routerLink="/payments" class="wallet-pill" title="Milk Wallet" *ngIf="auth.currentUser">
               <span class="wallet-icon">💰</span>
               <span class="wallet-amt">{{ (auth.currentUser?.walletBalance || 0) | inrCurrency }}</span>
             </a>
 
-            <!-- User Account Button / Dropdown -->
-            <div class="user-account-wrapper">
+            <!-- User Account Button / Dropdown (Logged In) -->
+            <div class="user-account-wrapper" *ngIf="auth.currentUser; else guestSignInBlock">
               <button class="user-action-pill" (click)="toggleProfileMenu()">
                 <span class="user-icon">{{ auth.currentUser?.role === 'SELLER' ? '👑' : auth.currentUser?.role === 'DELIVERY_PERSON' ? '🛵' : '🧑‍💼' }}</span>
-                <span class="user-name-text">{{ auth.currentUser?.name?.split(' ')[0] || 'Sign In' }}</span>
+                <span class="user-name-text">{{ auth.currentUser?.name?.split(' ')[0] }}</span>
                 <span class="caret-icon">▾</span>
               </button>
 
               <div class="user-popover-menu" *ngIf="showProfileMenu()">
                 <div class="popover-user-info">
-                  <strong>{{ auth.currentUser?.name || 'Guest User' }}</strong>
-                  <span class="popover-email">{{ auth.currentUser?.email || 'Login to manage subscriptions' }}</span>
-                  <span class="popover-role-badge" *ngIf="auth.currentUser">{{ auth.currentUser?.role }}</span>
+                  <strong>{{ auth.currentUser?.name }}</strong>
+                  <span class="popover-email">{{ auth.currentUser?.email }}</span>
+                  <span class="popover-role-badge">{{ auth.currentUser?.role }}</span>
                 </div>
                 <div class="popover-divider"></div>
                 <a routerLink="/profile" class="popover-item" (click)="showProfileMenu.set(false)">
@@ -124,21 +124,26 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
                 <a routerLink="/addresses" class="popover-item" (click)="showProfileMenu.set(false)">
                   <span class="item-icon">📍</span> Saved Addresses
                 </a>
-                <div class="popover-divider"></div>
+                <div class="popover-divider" *ngIf="auth.isSeller || auth.isDeliveryPerson"></div>
                 <a routerLink="/seller/dashboard" class="popover-item seller-highlight" *ngIf="auth.isSeller" (click)="showProfileMenu.set(false)">
                   <span class="item-icon">👑</span> Seller Operations Hub
                 </a>
                 <a routerLink="/delivery-partner" class="popover-item deliv-highlight" *ngIf="auth.isDeliveryPerson" (click)="showProfileMenu.set(false)">
                   <span class="item-icon">🛵</span> Delivery Partner Run-Sheet
                 </a>
-                <button type="button" class="popover-item switch-btn" (click)="openAuthModal()">
-                  <span class="item-icon">🔄</span> Switch Account / Sign In
-                </button>
                 <button type="button" class="popover-item logout-btn" (click)="logout()">
                   <span class="item-icon">🚪</span> Sign Out
                 </button>
               </div>
             </div>
+
+            <!-- Guest Sign In Button -->
+            <ng-template #guestSignInBlock>
+              <button class="user-action-pill guest-btn" (click)="openAuthModal()">
+                <span class="user-icon">👤</span>
+                <span class="user-name-text">Sign In</span>
+              </button>
+            </ng-template>
 
             <!-- Cart Trigger Pill -->
             <button class="cart-pill" (click)="cartService.toggleCartDrawer(true)">

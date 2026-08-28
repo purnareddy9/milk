@@ -8,7 +8,7 @@ import { AuthService } from '../../../core/auth/auth.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="persona-pill" [class.expanded]="isExpanded()">
+    <div class="persona-pill" *ngIf="isVisible()" [class.expanded]="isExpanded()">
       <!-- Main Trigger -->
       <button class="pill-trigger" (click)="toggleExpand()">
         <span class="avatar-ring">
@@ -295,6 +295,12 @@ export class PersonaSwitcherComponent {
 
   toggleExpand() {
     this.isExpanded.set(!this.isExpanded());
+  }
+
+  isVisible(): boolean {
+    if (typeof window === 'undefined') return false;
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    return isDev || localStorage.getItem('show_demo_switcher') === 'true';
   }
 
   currentName(): string {

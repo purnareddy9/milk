@@ -36,10 +36,8 @@ export class AuthService {
       } catch {
         this.logout();
       }
-    } else {
-      // Default to Rahul Sharma for instant demo accessibility
-      this.switchPersona('CUSTOMER_RAHUL').subscribe();
     }
+    // Production default: Visitor starts as a Guest
   }
 
   get token(): string | null {

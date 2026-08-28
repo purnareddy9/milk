@@ -13,7 +13,13 @@ export interface ApiResponse<T> {
 })
 export class ApiService {
   private get baseUrl(): string {
-    const customUrl = (window as any).__AMRIT_API_URL__ || localStorage.getItem('amrit_api_url');
+    const customUrl =
+      (window as any).__API_URL__ ||
+      (window as any).__BACKEND_URL__ ||
+      (window as any).__AMRIT_API_URL__ ||
+      localStorage.getItem('api_url') ||
+      localStorage.getItem('backend_url') ||
+      localStorage.getItem('amrit_api_url');
     if (customUrl) return customUrl;
 
     if (typeof window !== 'undefined') {
