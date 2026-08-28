@@ -4,30 +4,15 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting comprehensive database seed for Amrit Pure Dairy...');
+  console.log('🌱 Checking database seed state for Amrit Pure Dairy...');
 
-  // Clean existing tables in reverse relational order
-  await prisma.auditLog.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.coupon.deleteMany();
-  await prisma.inventoryTransaction.deleteMany();
-  await prisma.inventory.deleteMany();
-  await prisma.deliveryRun.deleteMany();
-  await prisma.walletTransaction.deleteMany();
-  await prisma.payment.deleteMany();
-  await prisma.orderItem.deleteMany();
-  await prisma.order.deleteMany();
-  await prisma.subscriptionDelivery.deleteMany();
-  await prisma.subscription.deleteMany();
-  await prisma.cartItem.deleteMany();
-  await prisma.cart.deleteMany();
-  await prisma.address.deleteMany();
-  await prisma.productVariant.deleteMany();
-  await prisma.product.deleteMany();
-  await prisma.category.deleteMany();
-  await prisma.deliveryPerson.deleteMany();
-  await prisma.customerProfile.deleteMany();
-  await prisma.user.deleteMany();
+  const userCount = await prisma.user.count();
+  if (userCount > 0) {
+    console.log(`✅ Database is already initialized with ${userCount} users. Preserving production user data.`);
+    return;
+  }
+
+  console.log('🌱 Empty database detected. Running initial seed...');
 
   const passwordHash = await bcrypt.hash('password123', 10);
 
