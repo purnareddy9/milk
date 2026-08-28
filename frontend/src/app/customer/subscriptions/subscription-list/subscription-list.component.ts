@@ -36,7 +36,7 @@ import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay
             <!-- Card Header -->
             <div class="sub-card-top">
               <div class="prod-identity">
-                <img [src]="sub.product.imageUrl" [alt]="sub.product.name" class="sub-prod-img" />
+                <img [src]="sub.product?.imageUrl || 'https://images.unsplash.com/photo-1527153857715-3908f2ae5e81?w=400&auto=format&fit=crop&q=80'" (error)="onImgError($event)" [alt]="sub.product?.name" class="sub-prod-img" />
                 <div>
                   <span class="status-pill" [class.active]="sub.status === 'ACTIVE'" [class.paused]="sub.status === 'PAUSED'">
                     {{ sub.status }}
@@ -776,5 +776,10 @@ export class SubscriptionListComponent implements OnInit {
         },
       });
     }
+  }
+
+  onImgError(event: Event) {
+    const target = event.target as HTMLImageElement;
+    target.src = 'https://images.unsplash.com/photo-1527153857715-3908f2ae5e81?w=400&auto=format&fit=crop&q=80';
   }
 }
