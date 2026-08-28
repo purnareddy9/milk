@@ -922,11 +922,18 @@ export class AuthModalComponent {
       return;
     }
 
+    if (this.signupPassword.length < 6) {
+      const msg = 'Password must be at least 6 characters long';
+      this.authError.set(msg);
+      this.toast.error(msg);
+      return;
+    }
+
     this.isSubmitting.set(true);
     const signupData = {
-      name: this.signupName,
-      email: this.signupEmail,
-      phone: this.signupPhone ? (this.signupPhone.startsWith('+91') ? this.signupPhone : `+91 ${this.signupPhone}`) : '+91 98111 22334',
+      name: this.signupName.trim(),
+      email: this.signupEmail.trim().toLowerCase(),
+      phone: this.signupPhone ? (this.signupPhone.startsWith('+91') ? this.signupPhone.trim() : `+91 ${this.signupPhone.trim()}`) : '+91 98111 22334',
       password: this.signupPassword,
       role: 'CUSTOMER',
     };
@@ -934,13 +941,17 @@ export class AuthModalComponent {
     this.auth.register(signupData).subscribe({
       next: (res) => {
         this.isSubmitting.set(false);
-        this.toast.success(`🎉 Account created! ₹100 Welcome Bonus added to your Milk Wallet.`);
-        this.close();
-        this.loginSuccess.emit(res);
+        if (res && res.user) {
+          this.toast.success(`Welcome to Amrit Pure Dairy, ${res.user.name}!`);
+          this.close();
+          this.loginSuccess.emit(res);
+        }
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        const errorMsg = err?.error?.message || 'Registration failed. Email or phone may already exist.';
+        const errorMsg =
+          err?.error?.message ||
+          'Unable to create your account. Please try again.';
         this.authError.set(errorMsg);
         this.toast.error(errorMsg);
       },

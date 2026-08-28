@@ -64,7 +64,6 @@ export class AuthService {
     return this.api.post<{ user: User; accessToken: string }>('auth/login', credentials).pipe(
       tap((res) => {
         this.setSession(res.user, res.accessToken);
-        this.toast.success(`Welcome back, ${res.user.name}!`);
       }),
     );
   }
@@ -73,7 +72,6 @@ export class AuthService {
     return this.api.post<{ user: User; accessToken: string }>('auth/otp-login', { phone }).pipe(
       tap((res) => {
         this.setSession(res.user, res.accessToken);
-        this.toast.success(`Welcome back, ${res.user.name}!`);
       }),
     );
   }
@@ -82,7 +80,6 @@ export class AuthService {
     return this.api.post<{ user: User; accessToken: string }>('auth/register', data).pipe(
       tap((res) => {
         this.setSession(res.user, res.accessToken);
-        this.toast.success(`Welcome to Amrit Pure Dairy, ${res.user.name}!`);
       }),
     );
   }

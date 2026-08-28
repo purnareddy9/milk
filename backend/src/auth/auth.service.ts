@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, NotFoundException, BadRequestException, InternalServerErrorException, ServiceUnavailableException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma/prisma.service';
@@ -17,43 +17,113 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    const email = dto.email.trim().toLowerCase();
-    const phone = dto.phone ? dto.phone.trim() : '';
-
-    const existing = await this.prisma.user.findFirst({
-      where: {
-        OR: [
-          { email },
-          ...(phone ? [{ phone }] : []),
-        ],
-      },
-    });
-
-    if (existing) {
-      throw new ConflictException('A user with this email or phone already exists');
+    if (!dto.name || !dto.name.trim()) {
+      throw new BadRequestException('Full name is required.');
+    }
+    if (!dto.email || !dto.email.trim()) {
+      throw new BadRequestException('Email address is required.');
+    }
+    if (!dto.password || dto.password.length < 6) {
+      throw new BadRequestException('Password must be at least 6 characters long.');
     }
 
+    const email = dto.email.trim().toLowerCase();
+    const rawPhone = dto.phone ? dto.phone.trim() : '';
+    const phone = rawPhone ? (rawPhone.startsWith('+91') ? rawPhone : `+91 ${rawPhone.replace(/[^0-9]/g, '')}`) : '+91 98000 00000';
+
+    // 1. Check if email already exists
+    const emailExists = await this.prisma.user.findFirst({
+      where: { email },
+    });
+    if (emailExists) {
+      throw new ConflictException('An account with this email already exists.');
+    }
+
+    // 2. Check if mobile already exists
+    if (rawPhone) {
+      const cleanDigits = rawPhone.replace(/[^0-9]/g, '');
+      const phoneExists = await this.prisma.user.findFirst({
+        where: {
+          OR: [
+            { phone: rawPhone },
+            { phone },
+            ...(cleanDigits ? [{ phone: cleanDigits }] : []),
+          ],
+        },
+      });
+      if (phoneExists) {
+        throw new ConflictException('An account with this mobile number already exists.');
+      }
+    }
+
+    // 3. Hash password
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const role = dto.role || Role.CUSTOMER;
 
-    const user = await this.prisma.user.create({
-      data: {
-        name: dto.name.trim(),
-        email,
-        phone: phone || '+91 98000 00000',
-        passwordHash,
-        role,
-        walletBalance: 100.0, // ₹100 Welcome Bonus
-        customerProfile: role === Role.CUSTOMER ? { create: { loyaltyPoints: 50, totalSpent: 0, orderCount: 0 } } : undefined,
-      },
-    });
+    // 4. Await atomic database insert and commit
+    try {
+      const user = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.user.create({
+          data: {
+            name: dto.name.trim(),
+            email,
+            phone,
+            passwordHash,
+            role,
+            walletBalance: 100.0, // ₹100 Welcome Bonus
+            customerProfile: role === Role.CUSTOMER ? {
+              create: { loyaltyPoints: 50, totalSpent: 0, orderCount: 0 }
+            } : undefined,
+          },
+          include: {
+            customerProfile: true,
+          },
+        });
 
-    const tokens = this.generateTokens(user.id, user.email, user.role);
+        // Add welcome bonus transaction to wallet ledger atomically
+        if (role === Role.CUSTOMER) {
+          await tx.walletTransaction.create({
+            data: {
+              userId: created.id,
+              type: 'CREDIT',
+              amount: 100.0,
+              balanceAfter: 100.0,
+              description: '🎉 Welcome Bonus credited to Milk Wallet',
+              referenceType: 'WELCOME_BONUS',
+            },
+          });
+        }
 
-    return {
-      user: this.sanitizeUser(user),
-      ...tokens,
-    };
+        return created;
+      });
+
+      // 5. Generate tokens ONLY after verified DB commit
+      const tokens = this.generateTokens(user.id, user.email, user.role);
+
+      return {
+        user: this.sanitizeUser(user),
+        ...tokens,
+      };
+    } catch (err: any) {
+      if (err instanceof ConflictException || err instanceof BadRequestException) {
+        throw err;
+      }
+      if (err?.code === 'P2002') {
+        const target = err?.meta?.target;
+        if (Array.isArray(target) && target.includes('email')) {
+          throw new ConflictException('An account with this email already exists.');
+        }
+        if (Array.isArray(target) && target.includes('phone')) {
+          throw new ConflictException('An account with this mobile number already exists.');
+        }
+        throw new ConflictException('An account with this email or mobile number already exists.');
+      }
+      if (err?.code === 'P1001' || err?.code === 'P1017' || err?.name === 'PrismaClientInitializationError') {
+        throw new ServiceUnavailableException("We couldn't create your account right now. Please try again shortly.");
+      }
+      console.error('Database user registration failed:', err);
+      throw new InternalServerErrorException('Unable to create your account. Please try again.');
+    }
   }
 
   async login(dto: LoginDto) {

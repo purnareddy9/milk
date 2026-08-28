@@ -43,6 +43,11 @@ import { ToastService } from '../../core/services/toast.service';
         <div class="card-content">
           <!-- LOGIN TAB -->
           <div *ngIf="activeTab() === 'LOGIN'">
+            <div class="auth-error-alert" *ngIf="authError()">
+              <span class="alert-icon">⚠️</span>
+              <span class="alert-text">{{ authError() }}</span>
+            </div>
+
             <div class="mode-switch">
               <button
                 type="button"
@@ -175,6 +180,11 @@ import { ToastService } from '../../core/services/toast.service';
 
           <!-- SIGNUP TAB -->
           <div *ngIf="activeTab() === 'SIGNUP'">
+            <div class="auth-error-alert" *ngIf="authError()">
+              <span class="alert-icon">⚠️</span>
+              <span class="alert-text">{{ authError() }}</span>
+            </div>
+
             <div class="welcome-badge">
               <span>🎁</span>
               <div>
@@ -320,6 +330,37 @@ import { ToastService } from '../../core/services/toast.service';
 
     .card-content {
       padding: 24px;
+    }
+
+    .auth-error-alert {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      background-color: #FEF2F2;
+      border: 1px solid #FCA5A5;
+      border-left: 4px solid #EF4444;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      color: #991B1B;
+      font-size: 0.875rem;
+      line-height: 1.4;
+      animation: shakeAlert 0.3s ease-in-out;
+
+      .alert-icon {
+        font-size: 1.1rem;
+        flex-shrink: 0;
+      }
+
+      .alert-text {
+        font-weight: 600;
+      }
+    }
+
+    @keyframes shakeAlert {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-4px); }
+      40%, 80% { transform: translateX(4px); }
     }
 
     .mode-switch {
@@ -526,6 +567,7 @@ export class AuthPageComponent implements OnInit {
   activeTab = signal<'LOGIN' | 'SIGNUP'>('LOGIN');
   loginMode = signal<'PASSWORD' | 'OTP'>('PASSWORD');
   isSubmitting = signal<boolean>(false);
+  authError = signal<string | null>(null);
 
   email = '';
   password = '';
@@ -549,9 +591,17 @@ export class AuthPageComponent implements OnInit {
     });
   }
 
+  switchTab(tab: 'LOGIN' | 'SIGNUP') {
+    this.activeTab.set(tab);
+    this.authError.set(null);
+  }
+
   handleLogin() {
+    this.authError.set(null);
     if (!this.email || !this.password) {
-      this.toast.error('Please enter email/phone and password');
+      const msg = 'Please enter email/phone and password';
+      this.authError.set(msg);
+      this.toast.error(msg);
       return;
     }
 
@@ -564,13 +614,17 @@ export class AuthPageComponent implements OnInit {
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        this.toast.error(err?.error?.message || 'Invalid email, mobile number or password.');
+        const errorMsg = err?.error?.message || 'Invalid email, mobile number or password.';
+        this.authError.set(errorMsg);
+        this.toast.error(errorMsg);
       },
     });
   }
 
   sendOtp() {
+    this.authError.set(null);
     if (this.phone.length < 10) {
+      this.authError.set('Enter a valid 10-digit phone number');
       this.toast.error('Enter a valid 10-digit phone number');
       return;
     }
@@ -579,7 +633,9 @@ export class AuthPageComponent implements OnInit {
   }
 
   verifyOtp() {
+    this.authError.set(null);
     if (this.enteredOtp !== '1234') {
+      this.authError.set('Invalid OTP. Use 1234');
       this.toast.error('Invalid OTP. Use 1234');
       return;
     }
@@ -587,37 +643,54 @@ export class AuthPageComponent implements OnInit {
     this.auth.otpLogin(this.phone).subscribe({
       next: (res) => {
         this.isSubmitting.set(false);
+        this.toast.success(`Welcome back, ${res.user.name}!`);
         this.redirectAfterLogin(res.user);
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        this.toast.error(err?.error?.message || 'OTP login failed. Please try again.');
+        const errorMsg = err?.error?.message || 'OTP login failed. Please try again.';
+        this.authError.set(errorMsg);
+        this.toast.error(errorMsg);
       },
     });
   }
 
   handleSignup() {
+    this.authError.set(null);
     if (!this.signupName || !this.signupEmail || !this.signupPassword) {
-      this.toast.error('Please fill all required fields');
+      const msg = 'Please fill all required fields (Name, Email, Password)';
+      this.authError.set(msg);
+      this.toast.error(msg);
+      return;
+    }
+
+    if (this.signupPassword.length < 6) {
+      const msg = 'Password must be at least 6 characters long';
+      this.authError.set(msg);
+      this.toast.error(msg);
       return;
     }
 
     this.isSubmitting.set(true);
     this.auth.register({
-      name: this.signupName,
-      email: this.signupEmail,
-      phone: this.signupPhone ? (this.signupPhone.startsWith('+91') ? this.signupPhone : `+91 ${this.signupPhone}`) : '+91 98111 22334',
+      name: this.signupName.trim(),
+      email: this.signupEmail.trim().toLowerCase(),
+      phone: this.signupPhone ? (this.signupPhone.startsWith('+91') ? this.signupPhone.trim() : `+91 ${this.signupPhone.trim()}`) : '+91 98111 22334',
       password: this.signupPassword,
       role: 'CUSTOMER',
     }).subscribe({
       next: (res) => {
         this.isSubmitting.set(false);
-        this.toast.success('🎉 Welcome to Amrit Pure Dairy! ₹100 credited to your wallet.');
-        this.redirectAfterLogin(res.user);
+        if (res && res.user) {
+          this.toast.success(`Welcome to Amrit Pure Dairy, ${res.user.name}!`);
+          this.redirectAfterLogin(res.user);
+        }
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        this.toast.error(err?.error?.message || 'Registration failed. Email or phone may already exist.');
+        const errorMsg = err?.error?.message || 'Unable to create your account. Please try again.';
+        this.authError.set(errorMsg);
+        this.toast.error(errorMsg);
       },
     });
   }
