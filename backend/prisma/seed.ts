@@ -1,79 +1,35 @@
-import { PrismaClient, Role, OrderType, OrderStatus, PaymentStatus, PaymentMethod, SubscriptionFrequency, SubscriptionStatus, DeliverySlot, DeliveryStatus, AddressType, InventoryChangeType, DiscountType, NotificationType } from '@prisma/client';
+import { PrismaClient, Role, DiscountType } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Checking database seed state for Amrit Pure Dairy...');
+  console.log('🌱 Checking clean production seed state for Amrit Pure Dairy...');
 
-  const userCount = await prisma.user.count();
-  if (userCount > 0) {
-    console.log(`✅ Database is already initialized with ${userCount} users. Preserving production user data.`);
-    return;
-  }
-
-  console.log('🌱 Empty database detected. Running initial seed...');
-
+  // 1. Staff Passwords
   const passwordHash = await bcrypt.hash('password123', 10);
 
-  // 1. Create Users
-  const seller = await prisma.user.create({
-    data: {
+  // 2. Ensure Admin / Seller exists (upsert so it never duplicates or wipes)
+  await prisma.user.upsert({
+    where: { email: 'admin@amritpuredairy.com' },
+    update: {},
+    create: {
       id: 'usr_seller_001',
-      name: 'Ramesh Patel',
+      name: 'Ramesh Patel (Dairy Owner)',
       email: 'admin@amritpuredairy.com',
       phone: '+91 98765 43210',
       passwordHash,
       role: Role.SELLER,
       avatarUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
-      walletBalance: 25000.00,
+      walletBalance: 0.00,
     },
   });
 
-  const customer1 = await prisma.user.create({
-    data: {
-      id: 'usr_cust_001',
-      name: 'Rahul Sharma',
-      email: 'rahul.sharma@example.com',
-      phone: '+91 98111 22334',
-      passwordHash,
-      role: Role.CUSTOMER,
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-      walletBalance: 1450.00,
-      customerProfile: {
-        create: {
-          loyaltyPoints: 340,
-          totalSpent: 4850.00,
-          orderCount: 18,
-          notes: 'Subscribed to Daily Cow Milk. Prefers glass bottles left in milk bag.',
-        },
-      },
-    },
-  });
-
-  const customer2 = await prisma.user.create({
-    data: {
-      id: 'usr_cust_002',
-      name: 'Priya Patel',
-      email: 'priya.patel@example.com',
-      phone: '+91 98222 33445',
-      passwordHash,
-      role: Role.CUSTOMER,
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-      walletBalance: 850.00,
-      customerProfile: {
-        create: {
-          loyaltyPoints: 180,
-          totalSpent: 2950.00,
-          orderCount: 9,
-          notes: 'Alternate days Buffalo Milk & weekly Paneer enthusiast.',
-        },
-      },
-    },
-  });
-
-  const deliveryPerson = await prisma.user.create({
-    data: {
+  // 3. Ensure Delivery Partner exists
+  await prisma.user.upsert({
+    where: { email: 'suresh.kumar@amritpuredairy.com' },
+    update: {},
+    create: {
       id: 'usr_deliv_001',
       name: 'Suresh Kumar',
       email: 'suresh.kumar@amritpuredairy.com',
@@ -81,12 +37,12 @@ async function main() {
       passwordHash,
       role: Role.DELIVERY_PERSON,
       avatarUrl: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80',
-      walletBalance: 500.00,
+      walletBalance: 0.00,
       deliveryPersonProfile: {
         create: {
           vehicleType: 'Electric Scooter (Eco-Carrier)',
           vehicleNumber: 'DL-01-EV-4421',
-          assignedRoute: 'Sector 1-15 & Green Park Morning Route',
+          assignedRoute: 'Sector 1-25 Morning Route',
           isOnline: true,
           currentLatitude: 28.6139,
           currentLongitude: 77.2090,
@@ -95,92 +51,27 @@ async function main() {
     },
   });
 
-  const deliveryProfile = await prisma.deliveryPerson.findUnique({ where: { userId: deliveryPerson.id } });
-
-  // 2. Addresses
-  const address1 = await prisma.address.create({
-    data: {
-      id: 'addr_001',
-      userId: customer1.id,
-      type: AddressType.HOME,
-      receiverName: 'Rahul Sharma',
-      receiverPhone: '+91 98111 22334',
-      houseFlat: 'Flat 402, Tower B',
-      apartmentStreet: 'Palm Meadows Heights, Sector 14',
-      landmark: 'Near Central Park Gate 2',
-      area: 'Sector 14',
-      city: 'Gurugram',
-      pincode: '122001',
-      deliveryInstructions: 'Leave in the blue insulated milk bag hooked outside door. Do not ring doorbell before 7:00 AM.',
-      isDefault: true,
-    },
-  });
-
-  const address2 = await prisma.address.create({
-    data: {
-      id: 'addr_002',
-      userId: customer1.id,
-      type: AddressType.WORK,
-      receiverName: 'Rahul Sharma (Office)',
-      receiverPhone: '+91 98111 22334',
-      houseFlat: 'Floor 6, Tech Park',
-      apartmentStreet: 'Cyber Hub Boulevard',
-      landmark: 'Opposite Gateway Tower',
-      area: 'DLF Phase 2',
-      city: 'Gurugram',
-      pincode: '122002',
-      deliveryInstructions: 'Deliver to reception between 9:00 AM - 10:00 AM',
-      isDefault: false,
-    },
-  });
-
-  const address3 = await prisma.address.create({
-    data: {
-      id: 'addr_003',
-      userId: customer2.id,
-      type: AddressType.HOME,
-      receiverName: 'Priya Patel',
-      receiverPhone: '+91 98222 33445',
-      houseFlat: 'Villa 18, Rosewood Enclave',
-      apartmentStreet: 'Green Avenue, Sector 23',
-      landmark: 'Next to Blossom Kindergarten',
-      area: 'Sector 23',
-      city: 'Gurugram',
-      pincode: '122017',
-      deliveryInstructions: 'Ring doorbell once and place bottle on milk tray.',
-      isDefault: true,
-    },
-  });
-
-  // 3. Categories
-  const catCowMilk = await prisma.category.create({
-    data: {
+  // 4. Product Categories
+  const categories = [
+    {
       id: 'cat_001',
-      name: 'Fresh Cow Milk',
+      name: 'Pure Desi Cow Milk',
       slug: 'cow-milk',
-      description: '100% pure, farm fresh organic cow milk chilled within 1 hour of milking.',
-      icon: 'milk',
+      description: 'Raw & pasteurized pure cow milk collected fresh every dawn from grass-fed cows.',
+      icon: 'glass',
       imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&auto=format&fit=crop&q=80',
       sortOrder: 1,
-      isActive: true,
     },
-  });
-
-  const catBuffaloMilk = await prisma.category.create({
-    data: {
+    {
       id: 'cat_002',
       name: 'Full Cream Buffalo Milk',
       slug: 'buffalo-milk',
-      description: 'Rich, thick, creamy buffalo milk with 6.5%+ natural fat content.',
-      icon: 'droplets',
-      imageUrl: 'https://images.unsplash.com/photo-1528750997573-59b89d56f4f7?w=600&auto=format&fit=crop&q=80',
+      description: 'Rich, creamy 7.0%+ fat buffalo milk ideal for dense curd, tea, and traditional sweets.',
+      icon: 'glass',
+      imageUrl: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=600&auto=format&fit=crop&q=80',
       sortOrder: 2,
-      isActive: true,
     },
-  });
-
-  const catA2Milk = await prisma.category.create({
-    data: {
+    {
       id: 'cat_003',
       name: 'Vedic A2 Gir Cow Milk',
       slug: 'a2-milk',
@@ -188,12 +79,8 @@ async function main() {
       icon: 'sparkles',
       imageUrl: 'https://images.unsplash.com/photo-1527153857715-3908f2ae5e81?w=600&auto=format&fit=crop&q=80',
       sortOrder: 3,
-      isActive: true,
     },
-  });
-
-  const catCurd = await prisma.category.create({
-    data: {
+    {
       id: 'cat_004',
       name: 'Farm Curd & Dahi',
       slug: 'curd',
@@ -201,12 +88,8 @@ async function main() {
       icon: 'bowl',
       imageUrl: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=600&auto=format&fit=crop&q=80',
       sortOrder: 4,
-      isActive: true,
     },
-  });
-
-  const catPaneer = await prisma.category.create({
-    data: {
+    {
       id: 'cat_005',
       name: 'Artisanal Malai Paneer',
       slug: 'paneer',
@@ -214,12 +97,8 @@ async function main() {
       icon: 'square',
       imageUrl: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=600&auto=format&fit=crop&q=80',
       sortOrder: 5,
-      isActive: true,
     },
-  });
-
-  const catGhee = await prisma.category.create({
-    data: {
+    {
       id: 'cat_006',
       name: 'Vedic Bilona Desi Ghee',
       slug: 'ghee',
@@ -227,12 +106,8 @@ async function main() {
       icon: 'flame',
       imageUrl: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80',
       sortOrder: 6,
-      isActive: true,
     },
-  });
-
-  const catButtermilk = await prisma.category.create({
-    data: {
+    {
       id: 'cat_007',
       name: 'Masala Chaas & Buttermilk',
       slug: 'buttermilk',
@@ -240,22 +115,29 @@ async function main() {
       icon: 'glass-water',
       imageUrl: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=600&auto=format&fit=crop&q=80',
       sortOrder: 7,
-      isActive: true,
     },
-  });
+  ];
 
-  // 4. Products & Variants
-  const p1 = await prisma.product.create({
-    data: {
+  for (const cat of categories) {
+    await prisma.category.upsert({
+      where: { slug: cat.slug },
+      update: cat,
+      create: { ...cat, isActive: true },
+    });
+  }
+
+  // 5. Products Catalog
+  const products = [
+    {
       id: 'prod_001',
-      categoryId: catCowMilk.id,
+      categoryId: 'cat_001',
       name: 'Farm Fresh Organic Cow Milk',
       slug: 'farm-fresh-cow-milk',
       description: 'Pure, wholesome cow milk collected at 4:30 AM every morning and chilled immediately to 4°C. Free from hormones, antibiotics, or synthetic preservatives.',
       unit: '1L',
       price: 64.00,
       subscriptionPrice: 58.00,
-      stock: 350,
+      stock: 500,
       fatPercent: 3.8,
       snfPercent: 8.5,
       pasteurizationType: 'Gentle Low-Temp Chilled Pasteurization',
@@ -267,102 +149,66 @@ async function main() {
       isFeatured: true,
       isActive: true,
       imageUrl: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&auto=format&fit=crop&q=80',
-      variants: {
-        create: [
-          { name: '500ml Eco Pouch', unit: '500ml', price: 34.00, subscriptionPrice: 30.00, stock: 200, isDefault: false },
-          { name: '1L Glass Bottle', unit: '1L', price: 64.00, subscriptionPrice: 58.00, stock: 350, isDefault: true },
-          { name: '2L Family Canister', unit: '2L', price: 125.00, subscriptionPrice: 114.00, stock: 80, isDefault: false },
-        ],
-      },
-      inventory: {
-        create: {
-          currentStock: 350,
-          reorderLevel: 50,
-          dailyConsumptionRate: 140,
-        },
-      },
+      variants: [
+        { name: '1 Liter Glass Bottle', unit: '1L', price: 64.00, subscriptionPrice: 58.00, stock: 350, isDefault: true },
+        { name: '500ml Glass Bottle', unit: '500ml', price: 34.00, subscriptionPrice: 30.00, stock: 150, isDefault: false },
+      ],
     },
-  });
-
-  const p2 = await prisma.product.create({
-    data: {
+    {
       id: 'prod_002',
-      categoryId: catBuffaloMilk.id,
-      name: 'Full Cream Village Buffalo Milk',
+      categoryId: 'cat_002',
+      name: 'Full Cream Desi Buffalo Milk',
       slug: 'full-cream-buffalo-milk',
-      description: 'Rich, wholesome, high-fat buffalo milk. Ideal for thick creamy tea, aromatic coffee, rich desserts, and making thick malai curd.',
+      description: 'Thick, creamy buffalo milk with natural 7.2% milk fat. Yields thick malai, dense curd, and rich tea/coffee.',
       unit: '1L',
-      price: 76.00,
+      price: 78.00,
       subscriptionPrice: 70.00,
-      stock: 240,
-      fatPercent: 6.8,
+      stock: 350,
+      fatPercent: 7.2,
       snfPercent: 9.2,
-      pasteurizationType: 'Fresh Batch Chilled Pasteurization',
+      pasteurizationType: 'Chilled Pasteurization',
       shelfLifeDays: 3,
-      storageInfo: 'Keep refrigerated below 4°C.',
-      ingredients: '100% Pure Buffalo Milk',
-      nutritionInfo: JSON.stringify({ calories: '97 kcal', protein: '4.2g', fat: '6.8g', calcium: '170mg', carbs: '5.2g' }),
+      storageInfo: 'Store refrigerated below 4°C.',
+      ingredients: '100% Raw Chilled Buffalo Milk',
+      nutritionInfo: JSON.stringify({ calories: '97 kcal', protein: '4.1g', fat: '7.2g', calcium: '190mg', carbs: '5.2g' }),
       isOrganic: true,
       isFeatured: true,
       isActive: true,
-      imageUrl: 'https://images.unsplash.com/photo-1528750997573-59b89d56f4f7?w=600&auto=format&fit=crop&q=80',
-      variants: {
-        create: [
-          { name: '500ml Eco Pouch', unit: '500ml', price: 40.00, subscriptionPrice: 36.00, stock: 150, isDefault: false },
-          { name: '1L Glass Bottle', unit: '1L', price: 76.00, subscriptionPrice: 70.00, stock: 240, isDefault: true },
-        ],
-      },
-      inventory: {
-        create: {
-          currentStock: 240,
-          reorderLevel: 40,
-          dailyConsumptionRate: 90,
-        },
-      },
+      imageUrl: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=600&auto=format&fit=crop&q=80',
+      variants: [
+        { name: '1 Liter Glass Bottle', unit: '1L', price: 78.00, subscriptionPrice: 70.00, stock: 250, isDefault: true },
+        { name: '500ml Glass Bottle', unit: '500ml', price: 42.00, subscriptionPrice: 38.00, stock: 100, isDefault: false },
+      ],
     },
-  });
-
-  const p3 = await prisma.product.create({
-    data: {
+    {
       id: 'prod_003',
-      categoryId: catA2Milk.id,
-      name: 'Vedic A2 Desi Gir Cow Milk',
-      slug: 'a2-desi-gir-cow-milk',
-      description: 'Sourced from grass-fed indigenous Gir cows. Naturally rich in A2 protein, easy to digest, with natural sweetness and immunity-boosting carotenoids.',
+      categoryId: 'cat_003',
+      name: 'Vedic A2 Gir Cow Raw Milk',
+      slug: 'vedic-a2-gir-cow-milk',
+      description: 'Cruelty-free milk from indigenous grass-fed Gir cows containing purely A2 beta-casein proteins. Easier to digest with enhanced natural immunity boosting nutrients.',
       unit: '1L',
-      price: 88.00,
-      subscriptionPrice: 80.00,
-      stock: 180,
+      price: 90.00,
+      subscriptionPrice: 82.00,
+      stock: 200,
       fatPercent: 4.5,
       snfPercent: 8.8,
-      pasteurizationType: 'Traditional Chilled Churn HTST',
-      shelfLifeDays: 3,
-      storageInfo: 'Store in refrigerator at 2°C - 4°C.',
-      ingredients: '100% Pure Indigenous A2 Gir Cow Milk',
-      nutritionInfo: JSON.stringify({ calories: '72 kcal', protein: '3.6g', fat: '4.5g', calcium: '145mg', carbs: '4.9g' }),
+      pasteurizationType: 'Whole Raw Unprocessed / Flash Chilled',
+      shelfLifeDays: 2,
+      storageInfo: 'Boil before use if consumed within 48 hours.',
+      ingredients: '100% Single-Origin A2 Gir Cow Milk',
+      nutritionInfo: JSON.stringify({ calories: '66 kcal', protein: '3.6g', fat: '4.5g', calcium: '135mg', carbs: '4.9g' }),
       isOrganic: true,
       isFeatured: true,
       isActive: true,
       imageUrl: 'https://images.unsplash.com/photo-1527153857715-3908f2ae5e81?w=600&auto=format&fit=crop&q=80',
-      variants: {
-        create: [
-          { name: '1L Heritage Glass Bottle', unit: '1L', price: 88.00, subscriptionPrice: 80.00, stock: 180, isDefault: true },
-        ],
-      },
-      inventory: {
-        create: {
-          currentStock: 180,
-          reorderLevel: 30,
-          dailyConsumptionRate: 60,
-        },
-      },
+      variants: [
+        { name: '1 Liter Heritage Glass Bottle', unit: '1L', price: 90.00, subscriptionPrice: 82.00, stock: 150, isDefault: true },
+        { name: '500ml Glass Bottle', unit: '500ml', price: 48.00, subscriptionPrice: 44.00, stock: 50, isDefault: false },
+      ],
     },
-  });
-
-  const p4 = await prisma.product.create({
-    data: {
+    {
       id: 'prod_004',
-      categoryId: catPaneer.id,
+      categoryId: 'cat_005',
       name: 'Fresh Malai Paneer (Farm Made)',
       slug: 'fresh-malai-paneer',
       description: 'Soft, creamy, melt-in-mouth cottage cheese crafted fresh every morning using natural lemon coagulant. Zero cornstarch or artificial thickeners.',
@@ -381,26 +227,14 @@ async function main() {
       isFeatured: true,
       isActive: true,
       imageUrl: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=600&auto=format&fit=crop&q=80',
-      variants: {
-        create: [
-          { name: '200g Vacuum Pack', unit: '200g', price: 95.00, subscriptionPrice: 88.00, stock: 80, isDefault: true },
-          { name: '500g Chef Pack', unit: '500g', price: 230.00, subscriptionPrice: 215.00, stock: 40, isDefault: false },
-        ],
-      },
-      inventory: {
-        create: {
-          currentStock: 120,
-          reorderLevel: 25,
-          dailyConsumptionRate: 35,
-        },
-      },
+      variants: [
+        { name: '200g Vacuum Pack', unit: '200g', price: 95.00, subscriptionPrice: 88.00, stock: 80, isDefault: true },
+        { name: '500g Chef Pack', unit: '500g', price: 230.00, subscriptionPrice: 215.00, stock: 40, isDefault: false },
+      ],
     },
-  });
-
-  const p5 = await prisma.product.create({
-    data: {
+    {
       id: 'prod_005',
-      categoryId: catCurd.id,
+      categoryId: 'cat_004',
       name: 'Traditional Set Farm Dahi (Curd)',
       slug: 'traditional-set-farm-dahi',
       description: 'Naturally fermented with live artisanal probiotic cultures. Thick, non-sour, sweet aftertaste, perfect with parathas or as raita.',
@@ -419,26 +253,14 @@ async function main() {
       isFeatured: true,
       isActive: true,
       imageUrl: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=600&auto=format&fit=crop&q=80',
-      variants: {
-        create: [
-          { name: '400g Tub', unit: '400g', price: 45.00, subscriptionPrice: 40.00, stock: 110, isDefault: true },
-          { name: '1kg Family Tub', unit: '1kg', price: 100.00, subscriptionPrice: 90.00, stock: 50, isDefault: false },
-        ],
-      },
-      inventory: {
-        create: {
-          currentStock: 160,
-          reorderLevel: 30,
-          dailyConsumptionRate: 45,
-        },
-      },
+      variants: [
+        { name: '400g Tub', unit: '400g', price: 45.00, subscriptionPrice: 40.00, stock: 110, isDefault: true },
+        { name: '1kg Family Tub', unit: '1kg', price: 100.00, subscriptionPrice: 90.00, stock: 50, isDefault: false },
+      ],
     },
-  });
-
-  const p6 = await prisma.product.create({
-    data: {
+    {
       id: 'prod_006',
-      categoryId: catGhee.id,
+      categoryId: 'cat_006',
       name: 'Vedic A2 Cultured Bilona Ghee',
       slug: 'vedic-a2-cultured-bilona-ghee',
       description: 'Handcrafted following ancient 5-step Vedic Bilona method: Grass-fed A2 Gir Cow Milk -> Fermented Curd -> Two-way Wooden Churned Makkhan -> Slow woodfire boiled golden granules.',
@@ -457,26 +279,14 @@ async function main() {
       isFeatured: true,
       isActive: true,
       imageUrl: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&auto=format&fit=crop&q=80',
-      variants: {
-        create: [
-          { name: '500ml Glass Jar', unit: '500ml', price: 690.00, subscriptionPrice: 650.00, stock: 60, isDefault: true },
-          { name: '1L Heritage Jar', unit: '1L', price: 1320.00, subscriptionPrice: 1250.00, stock: 30, isDefault: false },
-        ],
-      },
-      inventory: {
-        create: {
-          currentStock: 90,
-          reorderLevel: 15,
-          dailyConsumptionRate: 8,
-        },
-      },
+      variants: [
+        { name: '500ml Glass Jar', unit: '500ml', price: 690.00, subscriptionPrice: 650.00, stock: 60, isDefault: true },
+        { name: '1L Heritage Jar', unit: '1L', price: 1320.00, subscriptionPrice: 1250.00, stock: 30, isDefault: false },
+      ],
     },
-  });
-
-  const p7 = await prisma.product.create({
-    data: {
+    {
       id: 'prod_007',
-      categoryId: catButtermilk.id,
+      categoryId: 'cat_007',
       name: 'Masala Spiced Chaas (Mint & Cumin)',
       slug: 'masala-spiced-chaas',
       description: 'Refreshing traditional buttermilk infused with hand-pounded roasted jeera, fresh garden mint, green chilies, ginger, and pink Himalayan rock salt.',
@@ -495,207 +305,52 @@ async function main() {
       isFeatured: false,
       isActive: true,
       imageUrl: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=600&auto=format&fit=crop&q=80',
-      variants: {
-        create: [
-          { name: '300ml Bottle', unit: '300ml', price: 20.00, subscriptionPrice: 18.00, stock: 150, isDefault: true },
-          { name: '500ml Bottle', unit: '500ml', price: 32.00, subscriptionPrice: 28.00, stock: 70, isDefault: false },
-        ],
-      },
-      inventory: {
-        create: {
-          currentStock: 220,
-          reorderLevel: 40,
-          dailyConsumptionRate: 65,
-        },
-      },
+      variants: [
+        { name: '300ml Bottle', unit: '300ml', price: 20.00, subscriptionPrice: 18.00, stock: 150, isDefault: true },
+        { name: '500ml Bottle', unit: '500ml', price: 32.00, subscriptionPrice: 28.00, stock: 70, isDefault: false },
+      ],
     },
-  });
+  ];
 
-  // 5. Subscriptions
-  const today = new Date();
-  const sub1 = await prisma.subscription.create({
-    data: {
-      id: 'sub_001',
-      userId: customer1.id,
-      productId: p1.id,
-      frequency: SubscriptionFrequency.DAILY,
-      quantity: 1,
-      deliverySlot: DeliverySlot.MORNING_5_30_7_30,
-      startDate: new Date(today.getFullYear(), today.getMonth(), 1),
-      status: SubscriptionStatus.ACTIVE,
-      addressId: address1.id,
-      paymentMethod: PaymentMethod.WALLET,
-      dailyPrice: 58.00,
-      notes: 'Please ensure cold temperature on delivery.',
-    },
-  });
+  for (const prod of products) {
+    const { variants, ...prodData } = prod;
+    const existing = await prisma.product.findUnique({ where: { slug: prod.slug } });
 
-  const sub2 = await prisma.subscription.create({
-    data: {
-      id: 'sub_002',
-      userId: customer2.id,
-      productId: p2.id,
-      frequency: SubscriptionFrequency.ALTERNATE_DAYS,
-      quantity: 1,
-      deliverySlot: DeliverySlot.MORNING_5_30_7_30,
-      startDate: new Date(today.getFullYear(), today.getMonth(), 2),
-      status: SubscriptionStatus.ACTIVE,
-      addressId: address3.id,
-      paymentMethod: PaymentMethod.RAZORPAY,
-      dailyPrice: 70.00,
-      notes: 'Morning alternate day delivery.',
-    },
-  });
-
-  // Generate 30 days of deliveries for sub1 and sub2
-  for (let i = -7; i <= 25; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    d.setHours(0, 0, 0, 0);
-
-    let status: DeliveryStatus = DeliveryStatus.SCHEDULED;
-    let deliveredAt: Date | null = null;
-    let failureReason: string | null = null;
-
-    if (i < 0) {
-      status = DeliveryStatus.DELIVERED;
-      deliveredAt = new Date(d);
-      deliveredAt.setHours(6, 45, 0, 0);
-    } else if (i === 0) {
-      status = DeliveryStatus.DELIVERED;
-      deliveredAt = new Date();
-      deliveredAt.setHours(6, 50, 0, 0);
-    } else if (i === 3) {
-      status = DeliveryStatus.SKIPPED; // User skipped day +3 for demo
-    }
-
-    await prisma.subscriptionDelivery.create({
-      data: {
-        subscriptionId: sub1.id,
-        userId: customer1.id,
-        deliveryDate: d,
-        quantity: 1,
-        deliverySlot: DeliverySlot.MORNING_5_30_7_30,
-        status: status,
-        deliveryPersonId: deliveryProfile?.id,
-        deliveredAt,
-        failureReason,
-      },
-    });
-
-    // Sub 2 is alternate days
-    if (i % 2 === 0) {
-      await prisma.subscriptionDelivery.create({
+    if (!existing) {
+      await prisma.product.create({
         data: {
-          subscriptionId: sub2.id,
-          userId: customer2.id,
-          deliveryDate: d,
-          quantity: 1,
-          deliverySlot: DeliverySlot.MORNING_5_30_7_30,
-          status: i <= 0 ? DeliveryStatus.DELIVERED : DeliveryStatus.SCHEDULED,
-          deliveryPersonId: deliveryProfile?.id,
-          deliveredAt: i <= 0 ? new Date(d.getTime() + 7 * 3600 * 1000) : null,
+          ...prodData,
+          variants: {
+            create: variants,
+          },
+          inventory: {
+            create: {
+              currentStock: prod.stock,
+              reorderLevel: 25,
+              dailyConsumptionRate: 40,
+            },
+          },
         },
       });
     }
   }
 
-  // 6. Orders
-  const order1 = await prisma.order.create({
-    data: {
-      id: 'ord_001',
-      orderNumber: 'ORD-2026-8801',
-      userId: customer1.id,
-      orderType: OrderType.INSTANT,
-      status: OrderStatus.DELIVERED,
-      paymentStatus: PaymentStatus.PAID,
-      paymentMethod: PaymentMethod.WALLET,
-      deliveryDate: today,
-      deliverySlot: DeliverySlot.MORNING_5_30_7_30,
-      addressId: address1.id,
-      deliveryPersonId: deliveryProfile?.id,
-      subtotal: 254.00,
-      deliveryFee: 0.00,
-      discountAmount: 20.00,
-      couponCode: 'FRESH20',
-      totalAmount: 234.00,
-      items: {
-        create: [
-          { productId: p1.id, productName: 'Farm Fresh Organic Cow Milk', unit: '1L', quantity: 2, unitPrice: 64.00, totalPrice: 128.00 },
-          { productId: p4.id, productName: 'Fresh Malai Paneer (Farm Made)', unit: '200g', quantity: 1, unitPrice: 95.00, totalPrice: 95.00 },
-          { productId: p7.id, productName: 'Masala Spiced Chaas (Mint & Cumin)', unit: '300ml', quantity: 1, unitPrice: 20.00, totalPrice: 20.00 },
-        ],
-      },
-    },
-  });
+  // 6. Promotional Coupons
+  const coupons = [
+    { code: 'WELCOME50', description: 'Flat ₹50 OFF on your first farm order', discountType: DiscountType.FIXED, discountValue: 50.00, minOrderValue: 200.00, usageLimit: 1000, usedCount: 0, isActive: true },
+    { code: 'FRESH20', description: '20% OFF up to ₹100 on fresh dairy essentials', discountType: DiscountType.PERCENTAGE, discountValue: 20.00, minOrderValue: 150.00, maxDiscount: 100.00, usageLimit: 500, usedCount: 0, isActive: true },
+    { code: 'DAIRY100', description: 'Flat ₹100 OFF on orders above ₹600 (Ghee & Special combos)', discountType: DiscountType.FIXED, discountValue: 100.00, minOrderValue: 600.00, usageLimit: 200, usedCount: 0, isActive: true },
+  ];
 
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  for (const c of coupons) {
+    await prisma.coupon.upsert({
+      where: { code: c.code },
+      update: {},
+      create: c,
+    });
+  }
 
-  const order2 = await prisma.order.create({
-    data: {
-      id: 'ord_002',
-      orderNumber: 'ORD-2026-8802',
-      userId: customer2.id,
-      orderType: OrderType.INSTANT,
-      status: OrderStatus.CONFIRMED,
-      paymentStatus: PaymentStatus.PAID,
-      paymentMethod: PaymentMethod.RAZORPAY,
-      paymentId: 'pay_rzp_mock_9921',
-      deliveryDate: tomorrow,
-      deliverySlot: DeliverySlot.MORNING_5_30_7_30,
-      addressId: address3.id,
-      deliveryPersonId: deliveryProfile?.id,
-      subtotal: 780.00,
-      deliveryFee: 0.00,
-      discountAmount: 50.00,
-      couponCode: 'WELCOME50',
-      totalAmount: 730.00,
-      items: {
-        create: [
-          { productId: p6.id, productName: 'Vedic A2 Cultured Bilona Ghee', unit: '500ml', quantity: 1, unitPrice: 690.00, totalPrice: 690.00 },
-          { productId: p5.id, productName: 'Traditional Set Farm Dahi (Curd)', unit: '400g', quantity: 2, unitPrice: 45.00, totalPrice: 90.00 },
-        ],
-      },
-    },
-  });
-
-  // 7. Wallet Transactions
-  await prisma.walletTransaction.createMany({
-    data: [
-      { userId: customer1.id, type: 'CREDIT', amount: 2000.00, balanceAfter: 2000.00, description: 'Wallet Recharge via UPI', referenceType: 'TOPUP' },
-      { userId: customer1.id, type: 'DEBIT', amount: 234.00, balanceAfter: 1766.00, description: 'Payment for Order #ORD-2026-8801', referenceType: 'ORDER', referenceId: order1.id },
-      { userId: customer1.id, type: 'DEBIT', amount: 316.00, balanceAfter: 1450.00, description: 'Daily Milk Subscription Deductions (7 days)', referenceType: 'SUBSCRIPTION', referenceId: sub1.id },
-    ],
-  });
-
-  // 8. Coupons
-  await prisma.coupon.createMany({
-    data: [
-      { code: 'FRESH20', description: '20% OFF up to ₹100 on fresh dairy essentials', discountType: DiscountType.PERCENTAGE, discountValue: 20.00, minOrderValue: 150.00, maxDiscount: 100.00, usageLimit: 500, usedCount: 42, isActive: true },
-      { code: 'WELCOME50', description: 'Flat ₹50 OFF on your first farm order', discountType: DiscountType.FIXED, discountValue: 50.00, minOrderValue: 200.00, usageLimit: 1000, usedCount: 88, isActive: true },
-      { code: 'DAIRY100', description: 'Flat ₹100 OFF on orders above ₹600 (Ghee & Special combos)', discountType: DiscountType.FIXED, discountValue: 100.00, minOrderValue: 600.00, usageLimit: 200, usedCount: 14, isActive: true },
-    ],
-  });
-
-  // 9. Notifications
-  await prisma.notification.createMany({
-    data: [
-      { userId: customer1.id, title: '🥛 Morning Milk Delivered!', message: 'Your fresh 1L Cow Milk was delivered at 6:45 AM. Have a healthy morning!', type: NotificationType.DELIVERY, isRead: true },
-      { userId: customer1.id, title: '🔔 Tomorrow\'s Delivery Scheduled', message: 'Morning delivery window: 5:30 AM - 7:30 AM. Need to skip? You can skip before 10 PM.', type: NotificationType.SUBSCRIPTION, isRead: false },
-      { userId: customer2.id, title: '✨ Order Confirmed #ORD-2026-8802', message: 'Your order for Vedic Bilona Ghee & Curd is scheduled for tomorrow morning.', type: NotificationType.ORDER, isRead: false },
-    ],
-  });
-
-  // 10. Audit Logs
-  await prisma.auditLog.createMany({
-    data: [
-      { userId: seller.id, userRole: Role.SELLER, action: 'CREATE_PRODUCT', entityType: 'PRODUCT', entityId: p1.id, newValueJson: JSON.stringify({ name: p1.name, price: 64.00 }) },
-      { userId: seller.id, userRole: Role.SELLER, action: 'INVENTORY_BATCH_PROCURED', entityType: 'INVENTORY', entityId: p1.id, newValueJson: JSON.stringify({ batchLiters: 150, fatPercent: 3.8 }) },
-    ],
-  });
-
-  console.log('✅ Seed complete! Seeded 4 Users, 7 Categories, 7 Products, 2 Subscriptions with 30-day schedules, 2 Orders, Addresses, Wallet Ledger, and Coupons.');
+  console.log('✅ Clean production catalog verified! Zero dummy customer accounts.');
 }
 
 main()
