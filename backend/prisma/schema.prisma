@@ -1,0 +1,546 @@
+// Prisma Schema for Amrit Pure Dairy Platform
+// PostgreSQL Database Schema with Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  SELLER
+  ADMIN
+  DELIVERY_PERSON
+}
+
+enum OrderType {
+  INSTANT
+  SUBSCRIPTION_GENERATED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  FAILED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  RAZORPAY
+  UPI
+  CARD
+  NETBANKING
+  WALLET
+  COD
+}
+
+enum SubscriptionFrequency {
+  DAILY
+  ALTERNATE_DAYS
+  WEEKDAYS
+  WEEKENDS
+  CUSTOM_DAYS
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+  EXPIRED
+}
+
+enum DeliverySlot {
+  MORNING_5_30_7_30
+  EVENING_5_00_7_00
+}
+
+enum DeliveryStatus {
+  SCHEDULED
+  PREPARING
+  DISPATCHED
+  DELIVERED
+  SKIPPED
+  PAUSED
+  FAILED
+}
+
+enum AddressType {
+  HOME
+  WORK
+  OTHER
+}
+
+enum InventoryChangeType {
+  PROCUREMENT_BATCH
+  SALE_DEDUCTION
+  SPOILAGE_WASTAGE
+  TRANSIT_DAMAGE
+  AUDIT_ADJUSTMENT
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum NotificationType {
+  ORDER
+  SUBSCRIPTION
+  DELIVERY
+  OFFER
+  SYSTEM
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  phone         String    @unique
+  passwordHash  String
+  name          String
+  role          Role      @default(CUSTOMER)
+  avatarUrl     String?
+  walletBalance Decimal   @default(0.0) @db.Decimal(10, 2)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  customerProfile       CustomerProfile?
+  deliveryPersonProfile DeliveryPerson?
+  addresses             Address[]
+  orders                Order[]
+  subscriptions         Subscription[]
+  subscriptionDeliveries SubscriptionDelivery[]
+  cart                  Cart?
+  walletTransactions    WalletTransaction[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+  @@index([createdAt])
+}
+
+model CustomerProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loyaltyPoints Int     @default(0)
+  totalSpent   Decimal  @default(0.0) @db.Decimal(12, 2)
+  orderCount   Int      @default(0)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model DeliveryPerson {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleType      String?  // e.g. "Electric Scooter", "Motorcycle", "Van"
+  vehicleNumber    String?
+  assignedRoute    String?  // e.g. "Sector 1-15 Morning Route"
+  isOnline         Boolean  @default(true)
+  currentLatitude  Float?
+  currentLongitude Float?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  orders                 Order[]
+  subscriptionDeliveries SubscriptionDelivery[]
+  deliveryRuns           DeliveryRun[]
+
+  @@index([userId])
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  description String?
+  icon        String?
+  imageUrl    String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products    Product[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+model Product {
+  id                 String          @id @default(uuid())
+  categoryId         String
+  category           Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  name               String
+  slug               String          @unique
+  description        String
+  unit               String          // "500ml", "1L", "2L", "5L", "200g", "500g", "1kg"
+  price              Decimal         @db.Decimal(10, 2)
+  subscriptionPrice  Decimal         @db.Decimal(10, 2)
+  stock              Int             @default(0)
+  fatPercent         Decimal?        @db.Decimal(4, 2)
+  snfPercent         Decimal?        @db.Decimal(4, 2)
+  pasteurizationType String?         // "Chilled HTST", "Raw Farm Milk", "Slow Cultured", "Bilona Churned"
+  shelfLifeDays      Int             @default(2)
+  storageInfo        String?
+  ingredients        String?
+  nutritionInfo      String?         // JSON string with protein, calcium, fat, calories
+  isOrganic          Boolean         @default(true)
+  isFeatured         Boolean         @default(false)
+  isActive           Boolean         @default(true)
+  imageUrl           String
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  variants           ProductVariant[]
+  cartItems          CartItem[]
+  orderItems         OrderItem[]
+  subscriptions      Subscription[]
+  inventoryLogs      InventoryTransaction[]
+  inventory          Inventory?
+
+  @@index([categoryId])
+  @@index([slug])
+  @@index([isActive])
+  @@index([isFeatured])
+}
+
+model ProductVariant {
+  id                String   @id @default(uuid())
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name              String   // e.g. "500ml Pouch", "1L Glass Bottle", "2L Family Pack"
+  unit              String
+  price             Decimal  @db.Decimal(10, 2)
+  subscriptionPrice Decimal  @db.Decimal(10, 2)
+  stock             Int      @default(0)
+  isDefault         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  items     CartItem[]
+
+  @@index([userId])
+}
+
+model CartItem {
+  id             String                @id @default(uuid())
+  cartId         String
+  cart           Cart                  @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity       Int                   @default(1)
+  isSubscription Boolean               @default(false)
+  frequency      SubscriptionFrequency?
+  customDays     String?               // JSON string e.g. '["MON","WED","FRI"]'
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@index([cartId])
+  @@index([productId])
+}
+
+model Address {
+  id                   String      @id @default(uuid())
+  userId               String
+  user                 User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type                 AddressType @default(HOME)
+  receiverName         String
+  receiverPhone        String
+  houseFlat            String
+  apartmentStreet      String
+  landmark             String?
+  area                 String
+  city                 String
+  pincode              String
+  deliveryInstructions String?     // e.g. "Leave in insulated milk bag outside door", "Ring bell once"
+  isDefault            Boolean     @default(false)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  orders               Order[]
+  subscriptions        Subscription[]
+
+  @@index([userId])
+  @@index([pincode])
+}
+
+model Subscription {
+  id             String                @id @default(uuid())
+  userId         String
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product               @relation(fields: [productId], references: [id], onDelete: Restrict)
+  frequency      SubscriptionFrequency @default(DAILY)
+  customDays     String?               // JSON string array e.g. '["MON","TUE","WED","THU","FRI"]'
+  quantity       Int                   @default(1)
+  deliverySlot   DeliverySlot          @default(MORNING_5_30_7_30)
+  startDate      DateTime              @db.Date
+  endDate        DateTime?             @db.Date
+  status         SubscriptionStatus    @default(ACTIVE)
+  pauseStartDate DateTime?             @db.Date
+  pauseEndDate   DateTime?             @db.Date
+  addressId      String
+  address        Address               @relation(fields: [addressId], references: [id], onDelete: Restrict)
+  paymentMethod  PaymentMethod         @default(WALLET)
+  dailyPrice     Decimal               @db.Decimal(10, 2)
+  notes          String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  deliveries     SubscriptionDelivery[]
+  orders         Order[]
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+  @@index([startDate])
+}
+
+model SubscriptionDelivery {
+  id               String         @id @default(uuid())
+  subscriptionId   String
+  subscription     Subscription   @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveryDate     DateTime       @db.Date
+  quantity         Int
+  deliverySlot     DeliverySlot   @default(MORNING_5_30_7_30)
+  status           DeliveryStatus @default(SCHEDULED)
+  deliveryPersonId String?
+  deliveryPerson   DeliveryPerson? @relation(fields: [deliveryPersonId], references: [id], onDelete: SetNull)
+  failureReason    String?
+  deliveredAt      DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([subscriptionId, deliveryDate])
+  @@index([subscriptionId])
+  @@index([userId])
+  @@index([deliveryDate])
+  @@index([status])
+  @@index([deliveryPersonId])
+}
+
+model Order {
+  id               String         @id @default(uuid())
+  orderNumber      String         @unique
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderType        OrderType      @default(INSTANT)
+  subscriptionId   String?
+  subscription     Subscription?  @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  status           OrderStatus    @default(PENDING)
+  paymentStatus    PaymentStatus  @default(PENDING)
+  paymentMethod    PaymentMethod  @default(RAZORPAY)
+  paymentId        String?        // Razorpay payment ID
+  razorpayOrderId  String?
+  deliveryDate     DateTime       @db.Date
+  deliverySlot     DeliverySlot   @default(MORNING_5_30_7_30)
+  addressId        String
+  address          Address        @relation(fields: [addressId], references: [id], onDelete: Restrict)
+  deliveryPersonId String?
+  deliveryPerson   DeliveryPerson? @relation(fields: [deliveryPersonId], references: [id], onDelete: SetNull)
+  subtotal         Decimal        @db.Decimal(10, 2)
+  deliveryFee      Decimal        @default(0.0) @db.Decimal(10, 2)
+  discountAmount   Decimal        @default(0.0) @db.Decimal(10, 2)
+  couponCode       String?
+  tipAmount        Decimal        @default(0.0) @db.Decimal(10, 2)
+  totalAmount      Decimal        @db.Decimal(10, 2)
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  items            OrderItem[]
+  payments         Payment[]
+
+  @@index([orderNumber])
+  @@index([userId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([deliveryDate])
+  @@index([deliveryPersonId])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productName String
+  unit        String
+  quantity    Int
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  totalPrice  Decimal  @db.Decimal(10, 2)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  orderId       String?
+  order         Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  userId        String
+  amount        Decimal       @db.Decimal(10, 2)
+  currency      String        @default("INR")
+  method        PaymentMethod
+  gateway       String        @default("RAZORPAY")
+  transactionId String?       @unique
+  status        PaymentStatus @default(PENDING)
+  payloadJson   String?       // Raw webhook payload for audit
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([transactionId])
+  @@index([status])
+}
+
+model WalletTransaction {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          String   // "CREDIT" | "DEBIT"
+  amount        Decimal  @db.Decimal(10, 2)
+  balanceAfter  Decimal  @db.Decimal(10, 2)
+  description   String
+  referenceType String   // "TOPUP", "ORDER", "SUBSCRIPTION", "CASHBACK", "REFUND"
+  referenceId   String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model DeliveryRun {
+  id               String         @id @default(uuid())
+  deliveryPersonId String
+  deliveryPerson   DeliveryPerson @relation(fields: [deliveryPersonId], references: [id], onDelete: Cascade)
+  runDate          DateTime       @db.Date
+  slot             DeliverySlot
+  routeName        String
+  status           String         @default("PREPARING") // "PREPARING", "IN_TRANSIT", "COMPLETED"
+  totalStops       Int            @default(0)
+  completedStops   Int            @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([deliveryPersonId])
+  @@index([runDate])
+}
+
+model Inventory {
+  id                   String   @id @default(uuid())
+  productId            String   @unique
+  product              Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  currentStock         Int      @default(0)
+  reorderLevel         Int      @default(20)
+  dailyConsumptionRate Float    @default(0.0)
+  updatedAt            DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model InventoryTransaction {
+  id            String              @id @default(uuid())
+  productId     String
+  product       Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  changeQty     Int
+  type          InventoryChangeType
+  previousStock Int
+  newStock      Int
+  reasonNotes   String?             // e.g. "Morning procurement batch from Farm #2", "Leakage in bottle"
+  performedBy   String?
+  createdAt     DateTime            @default(now())
+
+  @@index([productId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Coupon {
+  id             String       @id @default(uuid())
+  code           String       @unique
+  description    String
+  discountType   DiscountType @default(PERCENTAGE)
+  discountValue  Decimal      @db.Decimal(10, 2)
+  minOrderValue  Decimal      @default(0.0) @db.Decimal(10, 2)
+  maxDiscount    Decimal?     @db.Decimal(10, 2)
+  validUntil     DateTime?
+  usageLimit     Int          @default(1000)
+  usedCount      Int          @default(0)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      NotificationType @default(SYSTEM)
+  linkUrl   String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userRole     Role?
+  action       String   // e.g. "UPDATE_PRODUCT_PRICE", "CANCEL_SUBSCRIPTION", "UPDATE_ORDER_STATUS"
+  entityType   String   // "PRODUCT", "SUBSCRIPTION", "ORDER", "INVENTORY"
+  entityId     String
+  oldValueJson String?  @db.Text
+  newValueJson String?  @db.Text
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([createdAt])
+}

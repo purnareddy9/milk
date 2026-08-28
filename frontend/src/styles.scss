@@ -1,0 +1,416 @@
+/* ==========================================================================
+   AMRIT PURE DAIRY DESIGN SYSTEM
+   Modern Classic Dairy E-Commerce & Operations Platform
+   ========================================================================== */
+
+:root {
+  /* Brand Palette - Deep Organic Green & Fresh Farm Pastures */
+  --primary: #1b4332;
+  --primary-hover: #143527;
+  --primary-light: #2d6a4f;
+  --primary-accent: #40916c;
+  --primary-subtle: #d8f3dc;
+  --primary-glow: rgba(27, 67, 50, 0.12);
+
+  /* Warm Cream & Golden Bilona Accents */
+  --cream-bg: #fffdf7;
+  --cream-surface: #fefae0;
+  --butter-gold: #dda15e;
+  --butter-dark: #bc6c25;
+  --gold-badge: #faedcd;
+
+  /* Fresh Morning Delivery Sky */
+  --sky-blue: #0284c7;
+  --sky-subtle: #e0f2fe;
+
+  /* Neutrals & Semantic Hierarchy */
+  --text-main: #141c18;
+  --text-body: #374740;
+  --text-muted: #6b7a72;
+  --text-light: #94a39b;
+  --bg-app: #f7faf8;
+  --bg-card: #ffffff;
+  --border-subtle: #e5ece8;
+  --border-hover: #cbd8d1;
+
+  /* Status Colors */
+  --success: #15803d;
+  --success-bg: #dcfce7;
+  --warning: #b45309;
+  --warning-bg: #fef3c7;
+  --danger: #b91c1c;
+  --danger-bg: #fee2e2;
+  --info: #0369a1;
+  --info-bg: #e0f2fe;
+
+  /* Layout & Geometry */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 3px rgba(20, 28, 24, 0.05);
+  --shadow-md: 0 4px 12px rgba(20, 28, 24, 0.07);
+  --shadow-lg: 0 10px 28px rgba(20, 28, 24, 0.09);
+  --shadow-hover: 0 8px 24px rgba(27, 67, 50, 0.14);
+
+  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --header-height: 72px;
+  --mobile-nav-height: 64px;
+}
+
+/* Reset & Box Sizing */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-body);
+  background-color: var(--bg-app);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  color: var(--text-main);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* Container */
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 16px;
+  }
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+  white-space: nowrap;
+  user-select: none;
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &.btn-primary {
+    background-color: var(--primary);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(27, 67, 50, 0.25);
+
+    &:hover {
+      background-color: var(--primary-hover);
+      box-shadow: 0 6px 18px rgba(27, 67, 50, 0.35);
+    }
+  }
+
+  &.btn-secondary {
+    background-color: var(--primary-subtle);
+    color: var(--primary);
+
+    &:hover {
+      background-color: #c3eec9;
+    }
+  }
+
+  &.btn-gold {
+    background: linear-gradient(135deg, #dda15e 0%, #bc6c25 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(188, 108, 37, 0.25);
+
+    &:hover {
+      filter: brightness(1.05);
+    }
+  }
+
+  &.btn-outline {
+    background-color: transparent;
+    color: var(--primary);
+    border: 1.5px solid var(--primary);
+
+    &:hover {
+      background-color: var(--primary-subtle);
+    }
+  }
+
+  &.btn-light {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+    border: 1px solid var(--border-subtle);
+
+    &:hover {
+      border-color: var(--border-hover);
+      background-color: #f9fbf9;
+    }
+  }
+
+  &.btn-danger {
+    background-color: var(--danger-bg);
+    color: var(--danger);
+
+    &:hover {
+      background-color: #fcd5d5;
+    }
+  }
+
+  &.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.825rem;
+    border-radius: var(--radius-sm);
+  }
+
+  &.btn-lg {
+    padding: 14px 28px;
+    font-size: 1.05rem;
+    border-radius: var(--radius-lg);
+  }
+
+  &.btn-block {
+    width: 100%;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+
+  &.badge-success {
+    background-color: var(--success-bg);
+    color: var(--success);
+  }
+
+  &.badge-warning {
+    background-color: var(--warning-bg);
+    color: var(--warning);
+  }
+
+  &.badge-danger {
+    background-color: var(--danger-bg);
+    color: var(--danger);
+  }
+
+  &.badge-info {
+    background-color: var(--info-bg);
+    color: var(--info);
+  }
+
+  &.badge-primary {
+    background-color: var(--primary-subtle);
+    color: var(--primary);
+  }
+
+  &.badge-gold {
+    background-color: var(--gold-badge);
+    color: var(--butter-dark);
+  }
+}
+
+/* Cards */
+.card {
+  background-color: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.25s ease;
+  overflow: hidden;
+
+  &.card-hover:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-2px);
+    border-color: var(--primary-subtle);
+  }
+}
+
+/* Form Controls */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+
+  input, select, textarea {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: var(--radius-md);
+    border: 1.5px solid var(--border-subtle);
+    background-color: #ffffff;
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    transition: all 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    &::placeholder {
+      color: var(--text-light);
+    }
+  }
+
+  .form-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+}
+
+/* Quantity Selector */
+.qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--primary-subtle);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 8px;
+
+  button {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background-color: #ffffff;
+    color: var(--primary);
+    font-weight: 800;
+    font-size: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+
+    &:hover {
+      background-color: var(--primary);
+      color: #ffffff;
+    }
+  }
+
+  .qty-val {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--primary);
+    min-width: 20px;
+    text-align: center;
+  }
+}
+
+/* Toast System */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+
+  @media (max-width: 768px) {
+    bottom: 80px;
+    left: 16px;
+    right: 16px;
+  }
+}
+
+.toast-item {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background-color: #ffffff;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+  border-left: 5px solid var(--primary);
+  color: var(--text-main);
+  animation: slideInToast 0.25s ease-out;
+
+  &.toast-success { border-left-color: var(--success); }
+  &.toast-danger { border-left-color: var(--danger); }
+  &.toast-info { border-left-color: var(--info); }
+}
+
+@keyframes slideInToast {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Pulse Animation for Milk Requirement Alert */
+@keyframes milkPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.alert-pulse {
+  animation: milkPulse 2s infinite ease-in-out;
+}
