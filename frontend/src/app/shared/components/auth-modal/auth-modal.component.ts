@@ -29,14 +29,14 @@ import { ToastService } from '../../../core/services/toast.service';
           <button
             class="tab-btn"
             [class.active]="activeTab() === 'LOGIN'"
-            (click)="activeTab.set('LOGIN')"
+            (click)="switchTab('LOGIN')"
           >
             Sign In
           </button>
           <button
             class="tab-btn"
             [class.active]="activeTab() === 'SIGNUP'"
-            (click)="activeTab.set('SIGNUP')"
+            (click)="switchTab('SIGNUP')"
           >
             Create Account
           </button>
@@ -45,6 +45,17 @@ import { ToastService } from '../../../core/services/toast.service';
         <div class="modal-body">
           <!-- SIGN IN FORM -->
           <div *ngIf="activeTab() === 'LOGIN'" class="auth-pane">
+            <!-- Inline Error Alert -->
+            <div class="auth-error-alert" *ngIf="authError()">
+              <span class="alert-icon">⚠️</span>
+              <div class="alert-text">
+                <strong>{{ authError() }}</strong>
+                <small *ngIf="authError()?.includes('not found') || authError()?.includes('Invalid')">
+                  Don't have an account yet? <a (click)="switchTab('SIGNUP')">Create an account here →</a>
+                </small>
+              </div>
+            </div>
+
             <div class="auth-mode-toggle">
               <button
                 type="button"
@@ -203,6 +214,14 @@ import { ToastService } from '../../../core/services/toast.service';
 
           <!-- SIGN UP FORM -->
           <div *ngIf="activeTab() === 'SIGNUP'" class="auth-pane">
+            <!-- Inline Error Alert -->
+            <div class="auth-error-alert" *ngIf="authError()">
+              <span class="alert-icon">⚠️</span>
+              <div class="alert-text">
+                <strong>{{ authError() }}</strong>
+              </div>
+            </div>
+
             <div class="signup-reward-banner">
               <span class="reward-icon">🎁</span>
               <div>
@@ -443,6 +462,55 @@ import { ToastService } from '../../../core/services/toast.service';
     .modal-body {
       padding: 22px 24px;
       overflow-y: auto;
+    }
+
+    .auth-error-alert {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      background-color: #FEF2F2;
+      border: 1px solid #FCA5A5;
+      border-left: 4px solid #EF4444;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      color: #991B1B;
+      font-size: 0.875rem;
+      line-height: 1.4;
+      animation: shakeAlert 0.3s ease-in-out;
+
+      .alert-icon {
+        font-size: 1.1rem;
+        flex-shrink: 0;
+      }
+
+      .alert-text {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+
+        strong {
+          color: #B91C1C;
+        }
+
+        small {
+          color: #4B5563;
+          font-size: 0.8rem;
+
+          a {
+            color: #1B4332;
+            font-weight: 700;
+            text-decoration: underline;
+            cursor: pointer;
+          }
+        }
+      }
+    }
+
+    @keyframes shakeAlert {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-4px); }
+      40%, 80% { transform: translateX(4px); }
     }
 
     .auth-mode-toggle {
@@ -743,6 +811,7 @@ export class AuthModalComponent {
   loginMode = signal<'PASSWORD' | 'OTP'>('PASSWORD');
   showPassword = signal<boolean>(false);
   isSubmitting = signal<boolean>(false);
+  authError = signal<string | null>(null);
 
   // Login form state
   loginEmail = '';
@@ -762,14 +831,23 @@ export class AuthModalComponent {
   signupPassword = '';
   agreedToTerms = false;
 
+  switchTab(tab: 'LOGIN' | 'SIGNUP') {
+    this.activeTab.set(tab);
+    this.authError.set(null);
+  }
+
   close() {
     this.isOpen = false;
     this.isOpenChange.emit(false);
+    this.authError.set(null);
   }
 
   handlePasswordLogin() {
+    this.authError.set(null);
     if (!this.loginEmail || !this.loginPassword) {
-      this.toast.error('Please enter both email/phone and password');
+      const msg = 'Please enter both email/mobile number and password';
+      this.authError.set(msg);
+      this.toast.error(msg);
       return;
     }
 
@@ -788,13 +866,17 @@ export class AuthModalComponent {
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        this.toast.error(err?.error?.message || 'Invalid email, mobile number or password.');
+        const errorMsg = err?.error?.message || 'Invalid email, mobile number or password.';
+        this.authError.set(errorMsg);
+        this.toast.error(errorMsg);
       },
     });
   }
 
   sendOtp() {
+    this.authError.set(null);
     if (this.otpPhone.length < 10) {
+      this.authError.set('Please enter a valid 10-digit mobile number');
       this.toast.error('Please enter a valid 10-digit mobile number');
       return;
     }
@@ -803,12 +885,14 @@ export class AuthModalComponent {
     setTimeout(() => {
       this.isSubmitting.set(false);
       this.otpSent.set(true);
-      this.toast.info(`OTP sent to +91 ${this.otpPhone}. (Demo OTP: 1234)`);
+      this.toast.info(`OTP sent to +91 ${this.otpPhone}.`);
     }, 400);
   }
 
   handleOtpLogin() {
+    this.authError.set(null);
     if (this.enteredOtp !== '1234') {
+      this.authError.set('Invalid OTP. Please enter 1234');
       this.toast.error('Invalid OTP. Please enter 1234');
       return;
     }
@@ -822,14 +906,19 @@ export class AuthModalComponent {
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        this.toast.error(err?.error?.message || 'OTP login failed. Please try again.');
+        const errorMsg = err?.error?.message || 'OTP login failed. Please try again.';
+        this.authError.set(errorMsg);
+        this.toast.error(errorMsg);
       },
     });
   }
 
   handleSignup() {
+    this.authError.set(null);
     if (!this.signupName || !this.signupEmail || !this.signupPassword) {
-      this.toast.error('Please fill in all required fields');
+      const msg = 'Please fill in all required fields (Name, Email, Password)';
+      this.authError.set(msg);
+      this.toast.error(msg);
       return;
     }
 
@@ -851,7 +940,9 @@ export class AuthModalComponent {
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        this.toast.error(err?.error?.message || 'Registration failed. Email or phone may already exist.');
+        const errorMsg = err?.error?.message || 'Registration failed. Email or phone may already exist.';
+        this.authError.set(errorMsg);
+        this.toast.error(errorMsg);
       },
     });
   }
