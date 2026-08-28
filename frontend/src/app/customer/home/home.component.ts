@@ -73,7 +73,8 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
 
           <div class="hero-image-wrap">
             <img
-              src="https://images.unsplash.com/photo-1527153857715-3908f2ae5e81?w=800&auto=format&fit=crop&q=80"
+              src="https://images.unsplash.com/photo-1550583724-b2692b85b150?w=800&auto=format&fit=crop&q=80"
+              (error)="onHeroImgError($event)"
               alt="Fresh Organic A2 Milk Bottle"
               class="hero-banner-img"
             />
@@ -663,5 +664,10 @@ export class HomeComponent implements OnInit {
   closeSubscriptionWizard() {
     this.isWizardOpen = false;
     this.selectedProductForSubscription = null;
+  }
+
+  onHeroImgError(event: Event) {
+    const target = event.target as HTMLImageElement;
+    target.src = 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=800&auto=format&fit=crop&q=80';
   }
 }

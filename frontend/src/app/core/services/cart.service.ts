@@ -30,6 +30,20 @@ export class CartService {
   }
 
   loadCart() {
+    const token = localStorage.getItem('amrit_dairy_token');
+    if (!token) {
+      // Guest visitor: load cart from localStorage
+      const saved = localStorage.getItem('amrit_local_cart');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          this.cartSubject.next(parsed);
+          this.cartSignal.set(parsed);
+        } catch {}
+      }
+      return;
+    }
+
     this.api.get<Cart>('cart').pipe(
       tap((cart) => {
         if (cart) {
@@ -38,7 +52,6 @@ export class CartService {
         }
       }),
       catchError(() => {
-        // Fallback local cart from localStorage
         const saved = localStorage.getItem('amrit_local_cart');
         if (saved) {
           try {

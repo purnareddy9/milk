@@ -26,8 +26,13 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         errorMessage = 'Access denied. You do not have permission for this action.';
       }
 
-      // Do not popup toast for background polling 404s
-      if (req.url.indexOf('/auth/me') === -1) {
+      // Do not popup toast for background polling 401s when user is a guest (not logged in)
+      if (error.status === 401 && !localStorage.getItem('amrit_dairy_token')) {
+        return throwError(() => error);
+      }
+
+      // Do not popup toast for auth/me background checks or guest cart polling
+      if (!req.url.includes('/auth/me') && !req.url.includes('/cart')) {
         toast.error(errorMessage);
       }
 
