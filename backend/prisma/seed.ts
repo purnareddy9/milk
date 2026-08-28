@@ -9,47 +9,77 @@ async function main() {
   // 1. Staff Passwords
   const passwordHash = await bcrypt.hash('password123', 10);
 
-  // 2. Ensure Admin / Seller exists (upsert so it never duplicates or wipes)
-  await prisma.user.upsert({
-    where: { email: 'admin@amritpuredairy.com' },
-    update: {},
-    create: {
-      id: 'usr_seller_001',
-      name: 'Ramesh Patel (Dairy Owner)',
-      email: 'admin@amritpuredairy.com',
-      phone: '+91 98765 43210',
-      passwordHash,
-      role: Role.SELLER,
-      avatarUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
-      walletBalance: 0.00,
+  // 2. Ensure Admin / Seller exists
+  const existingSeller = await prisma.user.findFirst({
+    where: {
+      OR: [{ id: 'usr_seller_001' }, { email: 'admin@amritpuredairy.com' }],
     },
   });
+  if (existingSeller) {
+    await prisma.user.update({
+      where: { id: existingSeller.id },
+      data: {
+        name: 'Ramesh Patel (Dairy Owner)',
+        email: 'admin@amritpuredairy.com',
+        role: Role.SELLER,
+        passwordHash,
+      },
+    });
+  } else {
+    await prisma.user.create({
+      data: {
+        id: 'usr_seller_001',
+        name: 'Ramesh Patel (Dairy Owner)',
+        email: 'admin@amritpuredairy.com',
+        phone: '+91 98765 43210',
+        passwordHash,
+        role: Role.SELLER,
+        avatarUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
+        walletBalance: 0.00,
+      },
+    });
+  }
 
   // 3. Ensure Delivery Partner exists
-  await prisma.user.upsert({
-    where: { email: 'suresh.kumar@amritpuredairy.com' },
-    update: {},
-    create: {
-      id: 'usr_deliv_001',
-      name: 'Suresh Kumar',
-      email: 'suresh.kumar@amritpuredairy.com',
-      phone: '+91 98333 44556',
-      passwordHash,
-      role: Role.DELIVERY_PERSON,
-      avatarUrl: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80',
-      walletBalance: 0.00,
-      deliveryPersonProfile: {
-        create: {
-          vehicleType: 'Electric Scooter (Eco-Carrier)',
-          vehicleNumber: 'DL-01-EV-4421',
-          assignedRoute: 'Sector 1-25 Morning Route',
-          isOnline: true,
-          currentLatitude: 28.6139,
-          currentLongitude: 77.2090,
-        },
-      },
+  const existingDriver = await prisma.user.findFirst({
+    where: {
+      OR: [{ id: 'usr_deliv_001' }, { email: 'suresh.kumar@amritpuredairy.com' }],
     },
   });
+  if (existingDriver) {
+    await prisma.user.update({
+      where: { id: existingDriver.id },
+      data: {
+        name: 'Suresh Kumar',
+        email: 'suresh.kumar@amritpuredairy.com',
+        role: Role.DELIVERY_PERSON,
+        passwordHash,
+      },
+    });
+  } else {
+    await prisma.user.create({
+      data: {
+        id: 'usr_deliv_001',
+        name: 'Suresh Kumar',
+        email: 'suresh.kumar@amritpuredairy.com',
+        phone: '+91 98333 44556',
+        passwordHash,
+        role: Role.DELIVERY_PERSON,
+        avatarUrl: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=80',
+        walletBalance: 0.00,
+        deliveryPersonProfile: {
+          create: {
+            vehicleType: 'Electric Scooter (Eco-Carrier)',
+            vehicleNumber: 'DL-01-EV-4421',
+            assignedRoute: 'Sector 1-25 Morning Route',
+            isOnline: true,
+            currentLatitude: 28.6139,
+            currentLongitude: 77.2090,
+          },
+        },
+      },
+    });
+  }
 
   // 4. Product Categories
   const categories = [
@@ -119,11 +149,21 @@ async function main() {
   ];
 
   for (const cat of categories) {
-    await prisma.category.upsert({
-      where: { slug: cat.slug },
-      update: cat,
-      create: { ...cat, isActive: true },
+    const existingCat = await prisma.category.findFirst({
+      where: {
+        OR: [{ id: cat.id }, { slug: cat.slug }],
+      },
     });
+    if (existingCat) {
+      await prisma.category.update({
+        where: { id: existingCat.id },
+        data: cat,
+      });
+    } else {
+      await prisma.category.create({
+        data: { ...cat, isActive: true },
+      });
+    }
   }
 
   // 5. Products Catalog
@@ -314,9 +354,38 @@ async function main() {
 
   for (const prod of products) {
     const { variants, ...prodData } = prod;
-    const existing = await prisma.product.findUnique({ where: { slug: prod.slug } });
+    const existing = await prisma.product.findFirst({
+      where: {
+        OR: [{ id: prod.id }, { slug: prod.slug }],
+      },
+    });
 
-    if (!existing) {
+    if (existing) {
+      await prisma.product.update({
+        where: { id: existing.id },
+        data: {
+          name: prodData.name,
+          slug: prodData.slug,
+          categoryId: prodData.categoryId,
+          description: prodData.description,
+          unit: prodData.unit,
+          price: prodData.price,
+          subscriptionPrice: prodData.subscriptionPrice,
+          stock: prodData.stock,
+          fatPercent: prodData.fatPercent,
+          snfPercent: prodData.snfPercent,
+          pasteurizationType: prodData.pasteurizationType,
+          shelfLifeDays: prodData.shelfLifeDays,
+          storageInfo: prodData.storageInfo,
+          ingredients: prodData.ingredients,
+          nutritionInfo: prodData.nutritionInfo,
+          isOrganic: prodData.isOrganic,
+          isFeatured: prodData.isFeatured,
+          isActive: true,
+          imageUrl: prodData.imageUrl,
+        },
+      });
+    } else {
       await prisma.product.create({
         data: {
           ...prodData,
