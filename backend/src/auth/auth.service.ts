@@ -17,9 +17,15 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
+    const email = dto.email.trim().toLowerCase();
+    const phone = dto.phone ? dto.phone.trim() : '';
+
     const existing = await this.prisma.user.findFirst({
       where: {
-        OR: [{ email: dto.email.toLowerCase() }, { phone: dto.phone }],
+        OR: [
+          { email },
+          ...(phone ? [{ phone }] : []),
+        ],
       },
     });
 
@@ -32,13 +38,13 @@ export class AuthService {
 
     const user = await this.prisma.user.create({
       data: {
-        name: dto.name,
-        email: dto.email.toLowerCase(),
-        phone: dto.phone,
+        name: dto.name.trim(),
+        email,
+        phone: phone || '+91 98000 00000',
         passwordHash,
         role,
-        walletBalance: 0.0,
-        customerProfile: role === Role.CUSTOMER ? { create: {} } : undefined,
+        walletBalance: 100.0, // ₹100 Welcome Bonus
+        customerProfile: role === Role.CUSTOMER ? { create: { loyaltyPoints: 50, totalSpent: 0, orderCount: 0 } } : undefined,
       },
     });
 
@@ -51,8 +57,17 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email.toLowerCase() },
+    const input = (dto.email || '').trim();
+    const phoneFormatted = input.startsWith('+91') ? input : `+91 ${input}`;
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: input.toLowerCase() },
+          { phone: input },
+          { phone: phoneFormatted },
+        ],
+      },
       include: {
         customerProfile: true,
         deliveryPersonProfile: true,
@@ -60,12 +75,12 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Invalid email, mobile number or password');
     }
 
     const isMatch = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isMatch) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Invalid email, mobile number or password');
     }
 
     const tokens = this.generateTokens(user.id, user.email, user.role);

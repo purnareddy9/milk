@@ -805,6 +805,13 @@ export class SubscriptionWizardModalComponent implements OnInit {
   }
 
   submitSubscription() {
+    if (!this.auth.isAuthenticated) {
+      this.toast.info('Please sign in or create an account to start your milk subscription.');
+      this.close();
+      this.router.navigate(['/login']);
+      return;
+    }
+
     this.isSubmitting.set(true);
 
     const payload = {

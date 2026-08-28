@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SubscriptionService } from '../../../core/services/subscription.service';
+import { AuthService } from '../../../core/auth/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { Subscription, SubscriptionDelivery } from '../../../core/models';
 import { InrCurrencyPipe } from '../../../shared/pipes/inr-currency.pipe';
@@ -119,8 +120,19 @@ import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay
         </div>
       </div>
 
-      <!-- Empty State -->
-      <div class="empty-subs card" *ngIf="subscriptions().length === 0">
+      <!-- Guest State (Not Logged In) -->
+      <div class="empty-subs card" *ngIf="!auth.isAuthenticated">
+        <span class="empty-icon">🔒</span>
+        <h2>Sign In to View Subscriptions</h2>
+        <p>Sign in or create an account to view and manage your daily milk deliveries, pause for vacations, or modify quantities.</p>
+        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px; flex-wrap: wrap;">
+          <a routerLink="/login" class="btn btn-primary btn-lg">Sign In to Your Account</a>
+          <a routerLink="/register" class="btn btn-gold btn-lg">Create Account (+₹100 Bonus)</a>
+        </div>
+      </div>
+
+      <!-- Empty State (Logged in but no subscriptions) -->
+      <div class="empty-subs card" *ngIf="auth.isAuthenticated && subscriptions().length === 0">
         <span class="empty-icon">🥛</span>
         <h2>No Active Milk Subscriptions</h2>
         <p>Get pure organic cow and buffalo milk delivered automatically to your door every single morning.</p>
@@ -600,6 +612,7 @@ import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay
 })
 export class SubscriptionListComponent implements OnInit {
   subscriptionService = inject(SubscriptionService);
+  auth = inject(AuthService);
   toast = inject(ToastService);
 
   subscriptions = signal<Subscription[]>([]);
@@ -617,8 +630,10 @@ export class SubscriptionListComponent implements OnInit {
   newQty = 1;
 
   ngOnInit() {
-    this.loadSubscriptions();
-    this.loadCalendar();
+    if (this.auth.isAuthenticated) {
+      this.loadSubscriptions();
+      this.loadCalendar();
+    }
   }
 
   loadSubscriptions() {

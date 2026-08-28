@@ -777,7 +777,7 @@ export class AuthModalComponent {
     this.auth.login({ email: this.loginEmail, password: this.loginPassword }).subscribe({
       next: (res) => {
         this.isSubmitting.set(false);
-        this.toast.success(`Welcome back, ${this.auth.currentUser?.name}!`);
+        this.toast.success(`Welcome back, ${res.user.name}!`);
         this.close();
         this.loginSuccess.emit(res);
         if (this.auth.isSeller) {
@@ -788,16 +788,7 @@ export class AuthModalComponent {
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        // Fallback for demo users
-        if (this.loginEmail.includes('admin') || this.loginEmail.includes('seller')) {
-          this.selectPersona('SELLER_RAMESH');
-        } else if (this.loginEmail.includes('suresh') || this.loginEmail.includes('delivery')) {
-          this.selectPersona('DELIVERY_SURESH');
-        } else if (this.loginEmail.includes('priya')) {
-          this.selectPersona('CUSTOMER_PRIYA');
-        } else {
-          this.selectPersona('CUSTOMER_RAHUL');
-        }
+        this.toast.error(err?.error?.message || 'Invalid email, mobile number or password.');
       },
     });
   }
@@ -836,7 +827,7 @@ export class AuthModalComponent {
     const signupData = {
       name: this.signupName,
       email: this.signupEmail,
-      phone: this.signupPhone ? `+91 ${this.signupPhone}` : '+91 98111 22334',
+      phone: this.signupPhone ? (this.signupPhone.startsWith('+91') ? this.signupPhone : `+91 ${this.signupPhone}`) : '+91 98111 22334',
       password: this.signupPassword,
       role: 'CUSTOMER',
     };
@@ -848,10 +839,9 @@ export class AuthModalComponent {
         this.close();
         this.loginSuccess.emit(res);
       },
-      error: () => {
+      error: (err) => {
         this.isSubmitting.set(false);
-        // Instant simulated registration
-        this.selectPersona('CUSTOMER_RAHUL');
+        this.toast.error(err?.error?.message || 'Registration failed. Email or phone may already exist.');
       },
     });
   }

@@ -562,9 +562,9 @@ export class AuthPageComponent implements OnInit {
         this.toast.success(`Welcome back, ${res.user.name}!`);
         this.redirectAfterLogin(res.user);
       },
-      error: () => {
+      error: (err) => {
         this.isSubmitting.set(false);
-        this.quickLogin('CUSTOMER_RAHUL');
+        this.toast.error(err?.error?.message || 'Invalid email, mobile number or password.');
       },
     });
   }
@@ -575,7 +575,7 @@ export class AuthPageComponent implements OnInit {
       return;
     }
     this.otpSent.set(true);
-    this.toast.info(`OTP sent to +91 ${this.phone}. Demo OTP: 1234`);
+    this.toast.info(`OTP sent to +91 ${this.phone}.`);
   }
 
   verifyOtp() {
@@ -596,7 +596,7 @@ export class AuthPageComponent implements OnInit {
     this.auth.register({
       name: this.signupName,
       email: this.signupEmail,
-      phone: this.signupPhone ? `+91 ${this.signupPhone}` : '+91 98111 22334',
+      phone: this.signupPhone ? (this.signupPhone.startsWith('+91') ? this.signupPhone : `+91 ${this.signupPhone}`) : '+91 98111 22334',
       password: this.signupPassword,
       role: 'CUSTOMER',
     }).subscribe({
@@ -605,9 +605,9 @@ export class AuthPageComponent implements OnInit {
         this.toast.success('🎉 Welcome to Amrit Pure Dairy! ₹100 credited to your wallet.');
         this.redirectAfterLogin(res.user);
       },
-      error: () => {
+      error: (err) => {
         this.isSubmitting.set(false);
-        this.quickLogin('CUSTOMER_RAHUL');
+        this.toast.error(err?.error?.message || 'Registration failed. Email or phone may already exist.');
       },
     });
   }
