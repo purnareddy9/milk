@@ -12,15 +12,16 @@ export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
   const user = authService.currentUser;
 
   if (!user) {
-    // Demo auto-switch or redirect
-    return true;
+    toast.error('Authentication required. Please sign in with your Seller account.');
+    router.navigate(['/login']);
+    return false;
   }
 
   if (expectedRoles && expectedRoles.includes(user.role)) {
     return true;
   }
 
-  toast.error(`Access restricted. Current role [${user.role}] cannot access this portal.`);
+  toast.error(`Access restricted. Account role [${user.role}] cannot access this portal.`);
   router.navigate(['/']);
   return false;
 };
