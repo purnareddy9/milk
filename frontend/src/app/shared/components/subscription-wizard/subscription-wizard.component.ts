@@ -29,6 +29,11 @@ import * as confetti from 'canvas-confetti';
 
         <!-- Body -->
         <div class="modal-body">
+          <!-- In-Modal Error Alert Banner -->
+          <div class="modal-error-banner" *ngIf="errorMessage()">
+            <span>⚠️ {{ errorMessage() }}</span>
+          </div>
+
           <!-- STEP 1: Frequency & Quantity -->
           <div class="step-pane" *ngIf="currentStep() === 1">
             <div class="product-preview-card">
@@ -182,10 +187,22 @@ import * as confetti from 'canvas-confetti';
 
           <!-- STEP 3: Address & Payment Confirmation -->
           <div class="step-pane" *ngIf="currentStep() === 3">
-            <!-- Address Selection -->
+            <!-- Address Selection Header -->
             <div class="form-section">
-              <label class="section-label">1. Delivery Address</label>
-              <div class="addresses-list" *ngIf="addresses.length > 0">
+              <div class="section-header-flex">
+                <label class="section-label">1. Morning Delivery Address</label>
+                <button
+                  type="button"
+                  class="btn-text-action"
+                  *ngIf="addresses.length > 0"
+                  (click)="toggleAddAddress()"
+                >
+                  {{ isAddingNewAddress() ? '← Use Saved Address' : '+ Add New Address' }}
+                </button>
+              </div>
+
+              <!-- Existing Addresses List -->
+              <div class="addresses-list" *ngIf="addresses.length > 0 && !isAddingNewAddress()">
                 <div
                   *ngFor="let addr of addresses"
                   class="address-option"
@@ -200,8 +217,47 @@ import * as confetti from 'canvas-confetti';
                 </div>
               </div>
 
-              <div *ngIf="addresses.length === 0" class="no-address">
-                <p>No saved addresses found. Using default home address.</p>
+              <!-- Inline New Address Form -->
+              <div class="new-address-form" *ngIf="addresses.length === 0 || isAddingNewAddress()">
+                <div class="address-prompt-banner" *ngIf="addresses.length === 0">
+                  <span>📍 Please enter your delivery address to start receiving morning milk.</span>
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label>Receiver Name</label>
+                    <input type="text" [(ngModel)]="newAddress.receiverName" placeholder="Full Name" class="form-control" />
+                  </div>
+                  <div class="form-group">
+                    <label>Mobile Number</label>
+                    <input type="tel" [(ngModel)]="newAddress.receiverPhone" placeholder="10-digit Mobile" class="form-control" />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Flat / House / Block No. *</label>
+                  <input type="text" [(ngModel)]="newAddress.houseFlat" placeholder="e.g. Flat 402, Tower B" class="form-control" />
+                </div>
+
+                <div class="form-group">
+                  <label>Apartment / Society / Street *</label>
+                  <input type="text" [(ngModel)]="newAddress.apartmentStreet" placeholder="e.g. Palm Heights, Sector 14" class="form-control" />
+                </div>
+
+                <div class="form-grid-3">
+                  <div class="form-group">
+                    <label>Area / Landmark</label>
+                    <input type="text" [(ngModel)]="newAddress.area" placeholder="e.g. Golf Course Ext" class="form-control" />
+                  </div>
+                  <div class="form-group">
+                    <label>City</label>
+                    <input type="text" [(ngModel)]="newAddress.city" placeholder="e.g. Gurugram" class="form-control" />
+                  </div>
+                  <div class="form-group">
+                    <label>Pincode *</label>
+                    <input type="text" [(ngModel)]="newAddress.pincode" placeholder="e.g. 122001" class="form-control" />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -675,6 +731,91 @@ import * as confetti from 'canvas-confetti';
       }
     }
 
+    .modal-error-banner {
+      background-color: var(--danger-bg, #fee2e2);
+      color: var(--danger, #b91c1c);
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      border: 1px solid rgba(185, 28, 28, 0.2);
+    }
+
+    .section-header-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .btn-text-action {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 0;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    .new-address-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: var(--bg-app);
+      padding: 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+
+      .address-prompt-banner {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 4px;
+      }
+
+      .form-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .form-grid-3 {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr 1fr;
+        gap: 10px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        label {
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: var(--text-main);
+        }
+
+        .form-control {
+          background-color: #ffffff;
+          padding: 8px 12px;
+          font-size: 0.85rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .form-grid-2, .form-grid-3 {
+          grid-template-columns: 1fr;
+        }
+      }
+    }
+
     .modal-footer {
       padding: 16px 24px;
       border-top: 1px solid var(--border-subtle);
@@ -706,6 +847,8 @@ export class SubscriptionWizardModalComponent implements OnInit {
   frequency = signal<SubscriptionFrequency>('DAILY');
   slot = signal<DeliverySlot>('MORNING_5_30_7_30');
   isSubmitting = signal<boolean>(false);
+  errorMessage = signal<string | null>(null);
+  isAddingNewAddress = signal<boolean>(false);
 
   selectedDays: string[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
   weekDays = [
@@ -725,13 +868,32 @@ export class SubscriptionWizardModalComponent implements OnInit {
   paymentMethod: PaymentMethod = 'WALLET';
   addresses: Address[] = [];
 
+  newAddress = {
+    type: 'HOME',
+    receiverName: '',
+    receiverPhone: '',
+    houseFlat: '',
+    apartmentStreet: '',
+    area: '',
+    city: 'Delhi NCR',
+    pincode: '',
+  };
+
   ngOnInit() {
     const tmr = new Date();
     tmr.setDate(tmr.getDate() + 1);
     this.tomorrowDateStr = tmr.toISOString().split('T')[0];
     this.startDate = this.tomorrowDateStr;
 
+    this.newAddress.receiverName = this.auth.currentUser?.name || '';
+    this.newAddress.receiverPhone = this.auth.currentUser?.phone || '';
+
     // Load addresses
+    this.loadAddresses();
+  }
+
+  loadAddresses() {
+    if (!this.auth.isAuthenticated) return;
     this.api.get<Address[]>('users/addresses').subscribe({
       next: (addrs) => {
         this.addresses = addrs || [];
@@ -740,10 +902,13 @@ export class SubscriptionWizardModalComponent implements OnInit {
         else if (this.addresses.length > 0) this.selectedAddressId = this.addresses[0].id;
       },
       error: () => {
-        // Fallback default address for demo
-        this.selectedAddressId = 'addr_001';
+        this.addresses = [];
       },
     });
+  }
+
+  toggleAddAddress() {
+    this.isAddingNewAddress.set(!this.isAddingNewAddress());
   }
 
   setFrequency(f: SubscriptionFrequency) {
@@ -793,18 +958,23 @@ export class SubscriptionWizardModalComponent implements OnInit {
   }
 
   nextStep() {
+    this.errorMessage.set(null);
     this.currentStep.set(this.currentStep() + 1);
   }
 
   prevStep() {
+    this.errorMessage.set(null);
     this.currentStep.set(this.currentStep() - 1);
   }
 
   close() {
+    this.errorMessage.set(null);
     this.closeWizard.emit();
   }
 
   submitSubscription() {
+    this.errorMessage.set(null);
+
     if (!this.auth.isAuthenticated) {
       this.toast.info('Please sign in or create an account to start your milk subscription.');
       this.close();
@@ -812,8 +982,54 @@ export class SubscriptionWizardModalComponent implements OnInit {
       return;
     }
 
-    this.isSubmitting.set(true);
+    // If user has no saved addresses OR is adding a new one:
+    if (this.addresses.length === 0 || this.isAddingNewAddress()) {
+      if (
+        !this.newAddress.houseFlat?.trim() ||
+        !this.newAddress.apartmentStreet?.trim() ||
+        !this.newAddress.pincode?.trim()
+      ) {
+        this.errorMessage.set('Please fill in Flat/House No., Society/Street, and Pincode to continue.');
+        return;
+      }
 
+      this.isSubmitting.set(true);
+
+      const addrPayload = {
+        type: this.newAddress.type || 'HOME',
+        receiverName: this.newAddress.receiverName?.trim() || this.auth.currentUser?.name || 'Customer',
+        receiverPhone: this.newAddress.receiverPhone?.trim() || this.auth.currentUser?.phone || '+91 9876543210',
+        houseFlat: this.newAddress.houseFlat.trim(),
+        apartmentStreet: this.newAddress.apartmentStreet.trim(),
+        area: this.newAddress.area?.trim() || 'Sector 1-25',
+        city: this.newAddress.city?.trim() || 'Delhi NCR',
+        pincode: this.newAddress.pincode.trim(),
+        isDefault: true,
+      };
+
+      this.api.post<Address>('users/addresses', addrPayload).subscribe({
+        next: (createdAddr) => {
+          this.selectedAddressId = createdAddr.id;
+          this.createSubscriptionWithAddress(createdAddr.id);
+        },
+        error: (err) => {
+          this.isSubmitting.set(false);
+          this.errorMessage.set(err?.error?.message || 'Could not save address. Please verify your details.');
+        },
+      });
+      return;
+    }
+
+    if (!this.selectedAddressId) {
+      this.errorMessage.set('Please select or enter a delivery address.');
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    this.createSubscriptionWithAddress(this.selectedAddressId);
+  }
+
+  private createSubscriptionWithAddress(addressId: string) {
     const payload = {
       productId: this.product.id,
       frequency: this.frequency(),
@@ -821,7 +1037,7 @@ export class SubscriptionWizardModalComponent implements OnInit {
       quantity: this.quantity(),
       deliverySlot: this.slot(),
       startDate: this.startDate,
-      addressId: this.selectedAddressId || 'addr_001',
+      addressId,
       paymentMethod: this.paymentMethod,
       notes: this.notes,
     };
@@ -846,9 +1062,9 @@ export class SubscriptionWizardModalComponent implements OnInit {
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        this.toast.error('Subscription creation completed.');
-        this.close();
-        this.router.navigate(['/subscriptions']);
+        this.errorMessage.set(
+          err?.error?.message || 'Failed to start subscription. Please verify your address and try again.',
+        );
       },
     });
   }
