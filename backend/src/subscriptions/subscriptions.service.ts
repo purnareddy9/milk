@@ -29,45 +29,51 @@ export class SubscriptionsService {
     const endDate = dto.endDate ? startOfDay(parseISO(dto.endDate)) : null;
     const dailyPrice = Number(product.subscriptionPrice) * dto.quantity;
 
-    const subscription = await this.prisma.$transaction(async (tx) => {
-      const sub = await tx.subscription.create({
-        data: {
-          userId,
-          productId: dto.productId,
-          frequency: dto.frequency,
-          customDays: dto.customDays ? JSON.stringify(dto.customDays) : null,
-          quantity: dto.quantity,
-          deliverySlot: dto.deliverySlot,
-          startDate,
-          endDate,
-          status: SubscriptionStatus.ACTIVE,
-          addressId: dto.addressId,
-          paymentMethod: dto.paymentMethod,
-          dailyPrice,
-          notes: dto.notes,
-        },
-        include: {
-          product: { include: { category: true } },
-          address: true,
-        },
-      });
+    const subscription = await this.prisma.$transaction(
+      async (tx) => {
+        const sub = await tx.subscription.create({
+          data: {
+            userId,
+            productId: dto.productId,
+            frequency: dto.frequency,
+            customDays: dto.customDays ? JSON.stringify(dto.customDays) : null,
+            quantity: dto.quantity,
+            deliverySlot: dto.deliverySlot,
+            startDate,
+            endDate,
+            status: SubscriptionStatus.ACTIVE,
+            addressId: dto.addressId,
+            paymentMethod: dto.paymentMethod,
+            dailyPrice,
+            notes: dto.notes,
+          },
+          include: {
+            product: { include: { category: true } },
+            address: true,
+          },
+        });
 
-      // Generate 30 days of upcoming deliveries
-      await this.generateDeliveriesForSubscription(tx, sub, 30);
+        // Generate 30 days of upcoming deliveries atomically in 1 query
+        await this.generateDeliveriesForSubscription(tx, sub, 30);
 
-      // Create notification
-      await tx.notification.create({
-        data: {
-          userId,
-          title: '🎉 Subscription Activated!',
-          message: `Your ${dto.quantity}x ${product.name} subscription has been created. Next delivery starts on ${dto.startDate}.`,
-          type: NotificationType.SUBSCRIPTION,
-          linkUrl: `/subscriptions`,
-        },
-      });
+        // Create notification
+        await tx.notification.create({
+          data: {
+            userId,
+            title: '🎉 Subscription Activated!',
+            message: `Your ${dto.quantity}x ${product.name} subscription has been created. Next delivery starts on ${dto.startDate}.`,
+            type: NotificationType.SUBSCRIPTION,
+            linkUrl: `/subscriptions`,
+          },
+        });
 
-      return sub;
-    });
+        return sub;
+      },
+      {
+        maxWait: 10000,
+        timeout: 20000,
+      },
+    );
 
     return subscription;
   }
@@ -402,16 +408,10 @@ export class SubscriptionsService {
       }
     }
 
-    for (const row of deliveryRows) {
-      await tx.subscriptionDelivery.upsert({
-        where: {
-          subscriptionId_deliveryDate: {
-            subscriptionId: row.subscriptionId,
-            deliveryDate: row.deliveryDate,
-          },
-        },
-        update: {}, // Keep existing status if already present
-        create: row,
+    if (deliveryRows.length > 0) {
+      await tx.subscriptionDelivery.createMany({
+        data: deliveryRows,
+        skipDuplicates: true,
       });
     }
   }
