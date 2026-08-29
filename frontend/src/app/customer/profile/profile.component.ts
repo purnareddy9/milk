@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -25,7 +25,7 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
         <!-- Profile Card -->
         <div class="profile-card card">
           <div class="avatar-header">
-            <img [src]="user.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80'" alt="Avatar" class="profile-avatar" />
+            <img [src]="getAvatarUrl(user)" alt="Avatar" class="profile-avatar" />
             <div>
               <h2>{{ user.name }}</h2>
               <span class="role-badge">{{ user.role }}</span>
@@ -38,11 +38,11 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
               <span class="stat-label">Milk Wallet</span>
             </div>
             <div class="stat-box">
-              <span class="stat-num">{{ user.customerProfile?.loyaltyPoints || 340 }}</span>
+              <span class="stat-num">{{ user.customerProfile?.loyaltyPoints ?? 50 }}</span>
               <span class="stat-label">Dairy Points</span>
             </div>
             <div class="stat-box">
-              <span class="stat-num">{{ user.customerProfile?.orderCount || 18 }}</span>
+              <span class="stat-num">{{ realOrderCount() }}</span>
               <span class="stat-label">Total Orders</span>
             </div>
           </div>
@@ -234,13 +234,40 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
     }
   `],
 })
-export class ProfileComponent {
+export class ProfileComponent implements OnInit {
   auth = inject(AuthService);
   api = inject(ApiService);
   toast = inject(ToastService);
 
   name = this.auth.currentUser?.name || '';
   phone = this.auth.currentUser?.phone || '';
+  realOrderCount = signal<number>(0);
+
+  ngOnInit() {
+    this.auth.fetchProfile().subscribe();
+    this.loadRealOrdersCount();
+  }
+
+  loadRealOrdersCount() {
+    this.api.get<any[]>('orders/my').subscribe({
+      next: (orders) => {
+        if (Array.isArray(orders)) {
+          this.realOrderCount.set(orders.length);
+        } else {
+          this.realOrderCount.set(this.auth.currentUser?.customerProfile?.orderCount ?? 0);
+        }
+      },
+      error: () => {
+        this.realOrderCount.set(this.auth.currentUser?.customerProfile?.orderCount ?? 0);
+      },
+    });
+  }
+
+  getAvatarUrl(user: any): string {
+    if (user?.avatarUrl) return user.avatarUrl;
+    const name = encodeURIComponent(user?.name || 'User');
+    return `https://ui-avatars.com/api/?name=${name}&background=1b4332&color=fff&size=150&font-size=0.4&bold=true`;
+  }
 
   saveProfile() {
     this.api.put('users/profile', { name: this.name, phone: this.phone }).subscribe({
