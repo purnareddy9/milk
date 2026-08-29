@@ -422,3 +422,23 @@ img {
 .alert-pulse {
   animation: milkPulse 2s infinite ease-in-out;
 }
+
+/* Universal Responsive Modal Scrolling Standard */
+.modal-backdrop {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-dialog {
+  max-height: 88vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.modal-body {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  flex: 1 1 auto !important;
+}
+
