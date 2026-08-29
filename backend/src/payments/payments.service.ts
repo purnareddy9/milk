@@ -43,7 +43,19 @@ export class PaymentsService {
       throw new BadRequestException('Invalid payment signature verification failed');
     }
 
-    // Record payment entry
+    // Idempotency: Check if this transaction has already been verified and processed
+    const existingPayment = await this.prisma.payment.findFirst({
+      where: { transactionId: dto.razorpayPaymentId, status: PaymentStatus.PAID },
+    });
+    if (existingPayment) {
+      return {
+        success: true,
+        message: 'Payment already verified and processed',
+        paymentId: dto.razorpayPaymentId,
+      };
+    }
+
+    // Record payment entry atomically
     const payment = await this.prisma.payment.create({
       data: {
         orderId: dto.orderId || null,
