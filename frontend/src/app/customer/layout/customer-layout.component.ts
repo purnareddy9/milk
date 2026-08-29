@@ -71,28 +71,31 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
 
           <!-- Header Right Actions -->
           <div class="header-actions">
-            <!-- Notifications Bell -->
-            <a routerLink="/notifications" class="action-btn notif-btn" title="Notifications">
-              <span>🔔</span>
-            </a>
+            <!-- Desktop-Only Shortcuts (Authenticated Users Only) -->
+            <ng-container *ngIf="auth.currentUser">
+              <!-- Notifications Bell -->
+              <a routerLink="/notifications" class="action-btn notif-btn desktop-only-action" title="Notifications">
+                <span>🔔</span>
+              </a>
 
-            <!-- Subscriptions Shortcut -->
-            <a routerLink="/subscriptions" class="action-btn sub-shortcut" title="My Subscriptions">
-              <span class="sub-icon">📅</span>
-              <span class="action-text">Subscriptions</span>
-            </a>
+              <!-- Subscriptions Shortcut -->
+              <a routerLink="/subscriptions" class="action-btn sub-shortcut desktop-only-action" title="My Subscriptions">
+                <span class="sub-icon">📅</span>
+                <span class="action-text">Subscriptions</span>
+              </a>
 
-            <!-- Orders Shortcut -->
-            <a routerLink="/orders" class="action-btn order-shortcut" title="My Orders">
-              <span class="order-icon">📦</span>
-              <span class="action-text">Orders</span>
-            </a>
+              <!-- Orders Shortcut -->
+              <a routerLink="/orders" class="action-btn order-shortcut desktop-only-action" title="My Orders">
+                <span class="order-icon">📦</span>
+                <span class="action-text">Orders</span>
+              </a>
 
-            <!-- Wallet (Only when logged in) -->
-            <a routerLink="/payments" class="wallet-pill" title="Milk Wallet" *ngIf="auth.currentUser">
-              <span class="wallet-icon">💰</span>
-              <span class="wallet-amt">{{ (auth.currentUser?.walletBalance || 0) | inrCurrency }}</span>
-            </a>
+              <!-- Milk Wallet Pill -->
+              <a routerLink="/payments" class="wallet-pill" title="Milk Wallet">
+                <span class="wallet-icon">💰</span>
+                <span class="wallet-amt">{{ (auth.currentUser?.walletBalance || 0) | inrCurrency }}</span>
+              </a>
+            </ng-container>
 
             <!-- User Account Button / Dropdown (Logged In) -->
             <div class="user-account-wrapper" *ngIf="auth.currentUser; else guestSignInBlock">
@@ -223,32 +226,55 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
         </div>
       </footer>
 
-      <!-- Mobile Bottom Navigation Bar -->
+      <!-- Mobile Bottom Navigation Bar (Auth-Aware) -->
       <nav class="mobile-bottom-nav">
+        <!-- Tab 1: Home -->
         <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-item">
           <span class="nav-icon">🏠</span>
           <span class="nav-label">Home</span>
         </a>
 
+        <!-- Tab 2: Dairy Products -->
         <a routerLink="/products" routerLinkActive="active" class="nav-item">
           <span class="nav-icon">🥛</span>
           <span class="nav-label">Dairy</span>
         </a>
 
-        <a routerLink="/subscriptions" routerLinkActive="active" class="nav-item">
-          <span class="nav-icon">📅</span>
-          <span class="nav-label">Subscribe</span>
-        </a>
+        <!-- GUEST TABS (Unauthenticated User) -->
+        <ng-container *ngIf="!auth.currentUser">
+          <!-- Tab 3: Milk Requirement Calculator -->
+          <a routerLink="/milk-requirement" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">📋</span>
+            <span class="nav-label">Milk Plan</span>
+          </a>
 
-        <a routerLink="/orders" routerLinkActive="active" class="nav-item">
-          <span class="nav-icon">📦</span>
-          <span class="nav-label">Orders</span>
-        </a>
+          <!-- Tab 4: Direct Sign In Trigger -->
+          <button type="button" class="nav-item nav-btn" (click)="openAuthModal()">
+            <span class="nav-icon">👤</span>
+            <span class="nav-label">Sign In</span>
+          </button>
+        </ng-container>
 
-        <a routerLink="/profile" routerLinkActive="active" class="nav-item">
-          <span class="nav-icon">👤</span>
-          <span class="nav-label">Account</span>
-        </a>
+        <!-- AUTHENTICATED TABS (Logged In User) -->
+        <ng-container *ngIf="auth.currentUser">
+          <!-- Tab 3: Subscriptions -->
+          <a routerLink="/subscriptions" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">📅</span>
+            <span class="nav-label">Subscribe</span>
+          </a>
+
+          <!-- Tab 4: Orders -->
+          <a routerLink="/orders" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">📦</span>
+            <span class="nav-label">Orders</span>
+          </a>
+
+          <!-- Tab 5: Account Profile -->
+          <a routerLink="/profile" routerLinkActive="active" class="nav-item">
+            <span class="nav-icon">👤</span>
+            <span class="nav-label">Account</span>
+          </a>
+        </ng-container>
       </nav>
 
       <!-- Cart Slide-Over Drawer -->
@@ -267,10 +293,12 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
   styles: [`
     .customer-app-shell {
       min-height: 100vh;
+      width: 100%;
+      overflow-x: hidden;
       display: flex;
       flex-direction: column;
       background-color: var(--bg-app);
-      padding-bottom: 70px; /* space for mobile nav */
+      padding-bottom: calc(var(--mobile-nav-height) + 12px);
 
       @media (min-width: 769px) {
         padding-bottom: 0;
@@ -306,7 +334,7 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
 
       @media (max-width: 768px) {
         .top-links { display: none; }
-        .announcement-inner { justify-content: center; text-align: center; }
+        .announcement-inner { justify-content: center; text-align: center; font-size: 0.75rem; }
       }
     }
 
@@ -317,23 +345,30 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
       top: 0;
       z-index: 8000;
       box-shadow: var(--shadow-sm);
+      width: 100%;
     }
 
     .header-inner {
       height: var(--header-height);
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 16px;
+      justify-content: space-between;
+
+      @media (max-width: 480px) {
+        gap: 8px;
+        height: 60px;
+      }
     }
 
     .brand-logo {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       flex-shrink: 0;
 
       .logo-emblem {
-        font-size: 2rem;
+        font-size: 1.8rem;
         line-height: 1;
       }
 
@@ -344,7 +379,7 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
 
       .brand-name {
         font-family: var(--font-heading);
-        font-size: 1.25rem;
+        font-size: 1.2rem;
         font-weight: 800;
         color: var(--primary);
         letter-spacing: 0.02em;
@@ -352,10 +387,22 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
       }
 
       .brand-sub {
-        font-size: 0.65rem;
+        font-size: 0.62rem;
         font-weight: 700;
         color: var(--butter-dark);
-        letter-spacing: 0.08em;
+        letter-spacing: 0.06em;
+      }
+
+      @media (max-width: 480px) {
+        gap: 6px;
+        .logo-emblem { font-size: 1.4rem; }
+        .brand-name { font-size: 1.05rem; }
+        .brand-sub { font-size: 0.52rem; letter-spacing: 0.02em; }
+      }
+
+      @media (max-width: 350px) {
+        .brand-name { font-size: 0.95rem; }
+        .brand-sub { display: none; }
       }
     }
 
@@ -436,8 +483,19 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       margin-left: auto;
+      flex-shrink: 0;
+
+      @media (max-width: 768px) {
+        .desktop-only-action {
+          display: none !important;
+        }
+      }
+
+      @media (max-width: 480px) {
+        gap: 6px;
+      }
     }
 
     .action-btn {
@@ -465,12 +523,12 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 12px;
+      padding: 5px 10px;
       background-color: var(--cream-surface);
       border: 1px solid var(--butter-gold);
       border-radius: var(--radius-full);
       font-weight: 700;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: var(--butter-dark);
       transition: all 0.2s ease;
 
@@ -478,7 +536,7 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
         filter: brightness(1.03);
       }
 
-      @media (max-width: 600px) {
+      @media (max-width: 520px) {
         display: none;
       }
     }
@@ -486,8 +544,8 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
     .cart-pill {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 16px;
+      gap: 8px;
+      padding: 8px 14px;
       background-color: var(--primary);
       color: #ffffff;
       border-radius: var(--radius-full);
@@ -501,7 +559,9 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
 
       .cart-icon-wrap {
         position: relative;
-        font-size: 1.2rem;
+        font-size: 1.15rem;
+        display: flex;
+        align-items: center;
       }
 
       .cart-badge {
@@ -522,12 +582,18 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
 
       .cart-total {
         font-weight: 700;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
+      }
+
+      @media (max-width: 480px) {
+        padding: 7px 10px;
+        .cart-total { display: none; }
       }
     }
 
     .app-main-content {
       flex: 1;
+      width: 100%;
     }
 
     .app-footer {
@@ -658,20 +724,45 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
         gap: 3px;
         color: var(--text-muted);
-        font-size: 0.725rem;
+        font-size: 0.72rem;
         font-weight: 600;
+        flex: 1;
+        min-width: 0;
+        height: 100%;
         transition: color 0.2s ease;
+        text-align: center;
+        text-decoration: none;
 
         .nav-icon {
-          font-size: 1.3rem;
+          font-size: 1.25rem;
           line-height: 1;
+        }
+
+        .nav-label {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 100%;
         }
 
         &.active {
           color: var(--primary);
           font-weight: 700;
+        }
+
+        &.nav-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-family: inherit;
+          padding: 0;
+        }
+
+        &:active {
+          transform: scale(0.95);
         }
       }
     }
@@ -683,8 +774,8 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
     .user-action-pill {
       display: flex;
       align-items: center;
-      gap: 7px;
-      padding: 7px 12px;
+      gap: 6px;
+      padding: 6px 12px;
       background: #F1F5F9;
       border: 1px solid #E2E8F0;
       border-radius: var(--radius-full, 9999px);
@@ -702,6 +793,17 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
       .user-icon { font-size: 1rem; }
       .user-name-text { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .caret-icon { font-size: 0.75rem; color: #64748B; }
+
+      @media (max-width: 480px) {
+        padding: 6px 8px;
+        font-size: 0.8rem;
+        .user-name-text { max-width: 55px; }
+      }
+
+      @media (max-width: 340px) {
+        .user-name-text { display: none; }
+        .caret-icon { display: none; }
+      }
     }
 
     .user-popover-menu {

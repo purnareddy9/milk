@@ -609,10 +609,50 @@ import { InrCurrencyPipe } from '../../shared/pipes/inr-currency.pipe';
     }
 
     @media (max-width: 900px) {
-      .hero-inner { grid-template-columns: 1fr; }
+      .hero-inner { grid-template-columns: 1fr; gap: 24px; }
       .steps-grid { grid-template-columns: 1fr; }
       .quality-banner { grid-template-columns: 1fr; }
-      .hero-title { font-size: 2.2rem; }
+      .hero-title { font-size: 2.1rem; }
+      .hero-image-wrap .floating-promo-card {
+        position: static;
+        margin-top: 16px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero-section { padding: 24px 0 20px; }
+      .hero-title { font-size: 1.65rem; line-height: 1.2; }
+      .hero-sub { font-size: 0.95rem; margin-bottom: 20px; }
+      .hero-cta-group {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        .btn { width: 100%; }
+      }
+      .hero-trust-badges {
+        flex-direction: column;
+        gap: 14px;
+        padding-top: 18px;
+      }
+      .hero-image-wrap .hero-banner-img {
+        height: 240px;
+      }
+      .categories-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .category-card {
+        padding: 8px 4px;
+        .cat-img-box { width: 50px; height: 50px; }
+        .cat-name { font-size: 0.75rem; }
+      }
+    }
+
+    @media (max-width: 350px) {
+      .hero-title { font-size: 1.45rem; }
+      .categories-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
     }
   `],
 })
