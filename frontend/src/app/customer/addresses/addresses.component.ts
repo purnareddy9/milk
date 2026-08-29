@@ -258,23 +258,25 @@ import { Address, AddressType } from '../../core/models';
       backdrop-filter: blur(4px);
       z-index: 9500;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       padding: 12px;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .modal-dialog {
+      margin: auto;
       background: #ffffff;
       border-radius: var(--radius-lg);
       width: 100%;
       max-width: 520px;
-      max-height: 88vh;
+      max-height: calc(100vh - 24px);
       display: flex;
       flex-direction: column;
       box-shadow: var(--shadow-lg);
       overflow: hidden;
-      margin: auto;
     }
 
     .modal-header {

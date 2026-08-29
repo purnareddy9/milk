@@ -68,10 +68,18 @@
   padding: 0;
 }
 
-html, body {
-  height: 100%;
+html {
+  min-height: 100%;
   width: 100%;
   overflow-x: hidden;
+  overflow-y: scroll;
+}
+
+body {
+  min-height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: visible;
   font-family: var(--font-body);
   font-size: 15px;
   line-height: 1.5;
@@ -425,20 +433,27 @@ img {
 
 /* Universal Responsive Modal Scrolling Standard */
 .modal-backdrop {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
   overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch;
+  -webkit-overflow-scrolling: touch !important;
+  padding: 12px !important;
 }
 
 .modal-dialog {
-  max-height: 88vh !important;
+  margin: auto !important;
+  max-height: calc(100vh - 24px) !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
+  width: 100% !important;
 }
 
 .modal-body {
   overflow-y: auto !important;
-  -webkit-overflow-scrolling: touch;
+  -webkit-overflow-scrolling: touch !important;
   flex: 1 1 auto !important;
 }
 

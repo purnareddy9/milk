@@ -339,17 +339,21 @@ import * as confetti from 'canvas-confetti';
       backdrop-filter: blur(6px);
       z-index: 9500;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 16px;
+      justify-content: flex-start;
+      padding: 12px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .modal-dialog {
+      margin: auto;
       background: #ffffff;
       border-radius: var(--radius-lg);
       width: 100%;
       max-width: 580px;
-      max-height: 90vh;
+      max-height: calc(100vh - 24px);
       display: flex;
       flex-direction: column;
       box-shadow: var(--shadow-lg);

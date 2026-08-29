@@ -337,21 +337,22 @@ import { ToastService } from '../../../core/services/toast.service';
   styles: [`
     .auth-modal-backdrop {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      inset: 0;
       background: rgba(14, 31, 23, 0.65);
       backdrop-filter: blur(6px);
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       z-index: 9999;
-      padding: 16px;
+      padding: 12px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       animation: fadeIn 0.2s ease-out;
     }
 
     .auth-modal-dialog {
+      margin: auto;
       background: #FFFFFF;
       width: 100%;
       max-width: 480px;
@@ -360,7 +361,7 @@ import { ToastService } from '../../../core/services/toast.service';
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      max-height: 92vh;
+      max-height: calc(100vh - 24px);
       animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
